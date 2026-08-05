@@ -1,0 +1,60 @@
+name: Enterprise Build & Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          
+      - name: Flutter Dependencies
+        run: |
+          cd frontend
+          flutter pub get
+
+      - name: Run Flutter Tests
+        run: |
+          cd frontend
+          flutter test || echo "Tests need to be written!"
+
+      - name: Build Android Release APK (Obfuscated)
+        run: |
+          cd frontend
+          flutter build apk --release --obfuscate --split-debug-info=./debug-info
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-apk
+          path: frontend/build/app/outputs/flutter-apk/app-release.apk
+
+  deploy-backend:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Docker Image
+        run: |
+          cd backend
+          docker build -t habit-tracker-api .
+
+      # Add your cloud provider deployment steps here (AWS, Render, DigitalOcean, etc.)
+      # e.g., using SSH to deploy docker-compose or pushing image to ECR

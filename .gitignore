@@ -1,0 +1,12 @@
+node_modules/
+.env
+database.sqlite
+*.log
+.dart_tool/
+.packages
+build/
+.pub-cache/
+.pub/
+frontend/build/
+frontend/.dart_tool/
+.DS_Store

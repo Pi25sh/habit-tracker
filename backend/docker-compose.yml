@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  habit-backend:
+    build: .
+    container_name: habit-tracker-api
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    volumes:
+      - habit-data:/usr/src/app/data
+    networks:
+      - habit-network
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  habit-data:
+
+networks:
+  habit-network:
+    driver: bridge
