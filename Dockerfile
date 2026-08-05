@@ -5,13 +5,13 @@ FROM node:18-alpine
 WORKDIR /usr/src/app
 
 # Copy package.json and package-lock.json
-COPY package*.json ./
+COPY backend/package*.json ./
 
 # Install dependencies
 RUN npm install --only=production
 
 # Copy the rest of the application code
-COPY . .
+COPY backend/ .
 
 # Ensure the database directory exists and is writable
 RUN mkdir -p /usr/src/app/data
