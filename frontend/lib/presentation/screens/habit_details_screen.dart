@@ -1,275 +1,239 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../application/providers/habit_provider.dart';
 import '../../data/models/habit.dart';
+import '../../presentation/widgets/app_card.dart';
+import 'create_habit_screen.dart';
 
+/// Clean details view for a Habit, matching the "Habit Detail" screen in the reference.
 class HabitDetailsScreen extends ConsumerWidget {
   final Habit habit;
 
   const HabitDetailsScreen({super.key, required this.habit});
 
-  void _deleteHabit(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Habit?'),
-        content: Text('Are you sure you want to delete ${habit.name}? This cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6))),
-          ),
-          TextButton(
-            onPressed: () {
-              ref.read(habitProvider.notifier).deleteHabit(habit.id);
-              Navigator.pop(context); // close dialog
-              Navigator.pop(context); // close details screen
-            },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final Color habitColor = Color(habit.color);
-    final colors = Theme.of(context).colorScheme;
+    final scheme = Theme.of(context).colorScheme;
+
+    // Get latest habit data from provider
+    final currentHabit = ref.watch(habitProvider).firstWhere(
+          (h) => h.id == habit.id,
+          orElse: () => habit,
+        );
+
+    // Calculate this week's data
+    final now = DateTime.now();
+    final monday = now.subtract(Duration(days: now.weekday - 1));
+    final weekDays = List.generate(7, (index) => monday.add(Duration(days: index)));
     
+    // Calculate monthly data
+    final startOfMonth = DateTime(now.year, now.month, 1);
+    final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+    final scheduledDaysInMonth = _calculateScheduledDays(startOfMonth, daysInMonth, currentHabit.repeatDays);
+    final completedInMonth = _calculateCompletedInPeriod(startOfMonth, DateTime(now.year, now.month, daysInMonth), currentHabit);
+    final monthlyProgress = scheduledDaysInMonth == 0 ? 0.0 : (completedInMonth / scheduledDaysInMonth).clamp(0.0, 1.0);
+
+    // Calculate streak
+    final streak = _calculateCurrentStreak(currentHabit);
+
     return Scaffold(
+      backgroundColor: scheme.surface,
       appBar: AppBar(
-        title: Text(habit.name),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-            onPressed: () => _deleteHabit(context, ref),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new, color: scheme.onSurface, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'Habit Detail',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: scheme.onSurface,
           ),
-        ],
+        ),
+        centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          children: [
-            // Header Card
-            Container(
-              padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(
-                color: habitColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: habitColor.withOpacity(0.3), width: 2),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    habit.icon ?? '✨',
-                    style: const TextStyle(fontSize: 64),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 60),
+        children: [
+          // Header (Icon, Title, Edit)
+          Row(
+            children: [
+              Text(currentHabit.icon ?? '💧', style: const TextStyle(fontSize: 28)),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  currentHabit.name,
+                  style: GoogleFonts.playfairDisplay(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.onSurface,
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    habit.name,
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: colors.onSurface,
-                    ),
-                  ),
-                  if (habit.description != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      habit.description!,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: colors.onSurface.withOpacity(0.6),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: habitColor,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          habit.routine,
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: habit.isPaused ? Colors.orange.withOpacity(0.2) : Colors.transparent,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: habit.isPaused ? Colors.orange : colors.onSurface.withOpacity(0.2),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Paused',
-                              style: TextStyle(
-                                color: habit.isPaused ? Colors.orange : colors.onSurface.withOpacity(0.5),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Switch(
-                              value: habit.isPaused,
-                              activeColor: Colors.orange,
-                              onChanged: (val) {
-                                habit.isPaused = val;
-                                ref.read(habitProvider.notifier).updateHabit(habit);
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  )
-                ],
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-            
-            const SizedBox(height: 32),
-            
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatCard(
-                    'Current Streak',
-                    '${habit.currentStreak} 🔥',
-                    colors.primary,
-                    colors,
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CreateHabitScreen(editHabit: currentHabit),
+                    ),
+                  );
+                },
+                child: Text(
+                  'Edit',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.primary,
                   ),
                 ),
-                const SizedBox(width: 16),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 32),
+
+          // This Week section
+          Text(
+            'This Week',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: scheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: List.generate(7, (index) {
+              final date = weekDays[index];
+              final isScheduled = currentHabit.repeatDays.isEmpty || currentHabit.repeatDays.contains(date.weekday);
+              final isCompleted = currentHabit.completedDates.any((d) => d.year == date.year && d.month == date.month && d.day == date.day);
+              final dayLabel = ['S', 'M', 'T', 'W', 'T', 'F', 'S'][date.weekday % 7];
+
+              return Column(
+                children: [
+                  Icon(
+                    Icons.water_drop,
+                    color: isCompleted
+                        ? scheme.primary
+                        : (isScheduled ? scheme.onSurface.withValues(alpha: 0.2) : scheme.onSurface.withValues(alpha: 0.05)),
+                    size: 24,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    dayLabel,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: scheme.onSurface.withValues(alpha: 0.4),
+                    ),
+                  ),
+                ],
+              );
+            }),
+          ),
+          
+          const SizedBox(height: 36),
+
+          // Monthly Progress section
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Monthly Progress',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: scheme.onSurface,
+                ),
+              ),
+              Text(
+                '$completedInMonth/$scheduledDaysInMonth days',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: scheme.onSurface.withValues(alpha: 0.5),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: monthlyProgress,
+              minHeight: 10,
+              backgroundColor: scheme.onSurface.withValues(alpha: 0.05),
+              valueColor: AlwaysStoppedAnimation<Color>(scheme.primary),
+            ),
+          ),
+
+          const SizedBox(height: 36),
+
+          // Streak Card
+          AppCard(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Row(
+              children: [
+                const Text('🔥', style: TextStyle(fontSize: 20)),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: _buildStatCard(
-                    'Longest Streak',
-                    '${habit.longestStreak} 👑',
-                    colors.secondary,
-                    colors,
+                  child: Text(
+                    'Streak',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: scheme.onSurface,
+                    ),
+                  ),
+                ),
+                Text(
+                  '$streak days',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],
             ),
-            
-            const SizedBox(height: 32),
-            
-            _buildStatCard(
-              'Total Completions',
-              '${habit.completedDates.length} Days',
-              colors.onSurface,
-              colors,
-              fullWidth: true,
-            ),
-            
-            const SizedBox(height: 32),
-            Text(
-              'Activity Heatmap (Last 30 Days)',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: colors.onSurface,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildHeatmap(habit.completedDates, habitColor, colors),
-            
-            const SizedBox(height: 32),
-            Text(
-              'Recent History',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: colors.onSurface,
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            ...habit.completedDates.reversed.take(5).map((date) {
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: colors.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    )
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: habitColor.withOpacity(0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Icons.check, color: habitColor),
-                    ),
-                    const SizedBox(width: 16),
-                    Text(
-                      DateFormat('EEEE, MMMM d, yyyy').format(date),
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: colors.onSurface,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-          ],
-        ),
-      ),
-    );
-  }
+          ),
 
-  Widget _buildStatCard(String title, String value, Color color, ColorScheme colors, {bool fullWidth = false}) {
-    return Container(
-      width: fullWidth ? double.infinity : null,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              color: colors.onSurface.withOpacity(0.6),
-              fontSize: 14,
+          const SizedBox(height: 24),
+
+          // Quote Card
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: const Color(0xFFDDE8D9), // Pastel botanical green
+              borderRadius: BorderRadius.circular(24),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              color: color,
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Consistency is the\nkey to progress.',
+                    style: GoogleFonts.playfairDisplay(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      height: 1.4,
+                      color: const Color(0xFF342D28),
+                    ),
+                  ),
+                ),
+                // Stylized botanical element 🌿
+                Icon(
+                  Icons.spa_outlined,
+                  size: 48,
+                  color: scheme.primary.withValues(alpha: 0.6),
+                ),
+              ],
             ),
           ),
         ],
@@ -277,52 +241,51 @@ class HabitDetailsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeatmap(List<DateTime> completedDates, Color habitColor, ColorScheme colors) {
-    final today = DateTime.now();
-    final List<Widget> columns = [];
+  int _calculateScheduledDays(DateTime start, int daysInMonth, List<int> repeatDays) {
+    if (repeatDays.isEmpty) return daysInMonth; // Every day
+    int count = 0;
+    for (int i = 0; i < daysInMonth; i++) {
+      final d = start.add(Duration(days: i));
+      if (repeatDays.contains(d.weekday)) count++;
+    }
+    return count;
+  }
+
+  int _calculateCompletedInPeriod(DateTime start, DateTime end, Habit habit) {
+    return habit.completedDates.where((d) => 
+      (d.isAfter(start.subtract(const Duration(days: 1))) && 
+       d.isBefore(end.add(const Duration(days: 1))))
+    ).length;
+  }
+
+  int _calculateCurrentStreak(Habit habit) {
+    if (habit.completedDates.isEmpty) return 0;
     
-    // Generate 30 days of data
-    final List<DateTime> last30Days = List.generate(30, (index) {
-      return today.subtract(Duration(days: 29 - index));
-    });
+    // Sort dates descending
+    final sorted = List<DateTime>.from(habit.completedDates)
+      ..sort((a, b) => b.compareTo(a));
+      
+    int streak = 1;
+    DateTime current = sorted.first;
+    
+    // Check if the streak is broken (last completed is older than yesterday)
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final lastDate = DateTime(current.year, current.month, current.day);
+    if (today.difference(lastDate).inDays > 1) return 0;
 
-    final completedSet = completedDates.map((d) => DateTime(d.year, d.month, d.day)).toSet();
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: last30Days.map((date) {
-          final isCompleted = completedSet.contains(DateTime(date.year, date.month, date.day));
-          return Tooltip(
-            message: DateFormat('MMM d, yyyy').format(date),
-            child: Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                color: isCompleted ? habitColor : colors.onSurface.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: isCompleted ? habitColor.withOpacity(0.5) : Colors.transparent,
-                ),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
+    for (int i = 1; i < sorted.length; i++) {
+      final prev = DateTime(sorted[i].year, sorted[i].month, sorted[i].day);
+      final diff = current.difference(prev).inDays;
+      if (diff == 1) {
+        streak++;
+        current = prev;
+      } else if (diff == 0) {
+        continue;
+      } else {
+        break;
+      }
+    }
+    return streak;
   }
 }

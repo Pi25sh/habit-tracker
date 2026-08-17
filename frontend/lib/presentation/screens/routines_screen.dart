@@ -62,13 +62,13 @@ class RoutinesScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(32.0),
                 child: Column(
                   children: [
-                    Icon(Icons.list_alt, size: 64, color: colors.secondary.withOpacity(0.5)),
+                    Icon(Icons.list_alt, size: 64, color: colors.secondary.withValues(alpha: 0.5)),
                     const SizedBox(height: 16),
                     Text(
                       'No routines set up yet!\nCreate a habit to start building your routines.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: colors.onSurface.withOpacity(0.5),
+                        color: colors.onSurface.withValues(alpha: 0.5),
                         fontSize: 16,
                       ),
                     ),
@@ -117,7 +117,7 @@ class RoutinesScreen extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: cardColor.withOpacity(0.08),
+                    color: cardColor.withValues(alpha: 0.08),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -128,7 +128,7 @@ class RoutinesScreen extends ConsumerWidget {
                 leading: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: cardColor.withOpacity(0.1),
+                    color: cardColor.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Text(habit.icon ?? '✨', style: const TextStyle(fontSize: 24)),
@@ -152,7 +152,7 @@ class RoutinesScreen extends ConsumerWidget {
                       color: isCompleted ? colors.primary : Colors.transparent,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: isCompleted ? colors.primary : colors.onSurface.withOpacity(0.3),
+                        color: isCompleted ? colors.primary : colors.onSurface.withValues(alpha: 0.3),
                         width: 2,
                       ),
                     ),

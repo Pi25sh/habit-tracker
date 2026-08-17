@@ -1,306 +1,261 @@
+import 'dart:ui' as dart_ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../application/providers/passcode_provider.dart';
-import '../../core/theme/theme_provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_colors.dart';
-import 'package:flutter/services.dart';
-import 'dart:convert';
-import 'passcode_screen.dart';
-import '../../application/providers/habit_provider.dart';
+import '../../core/theme/theme_provider.dart';
+import '../../application/providers/background_provider.dart';
+import '../../presentation/widgets/profile_card.dart';
+import '../../presentation/widgets/settings_row.dart';
+import 'notification_scheduling_screen.dart';
+import 'profile_screen.dart';
 
+/// Settings — Profile card, Preferences, Data & Privacy and Support,
+/// with the Warm / Sage / Lavender / Dark theme picker.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
-  void _logout(BuildContext context, WidgetRef ref) {
-    ref.read(loginProvider.notifier).logout();
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const PasscodeScreen()),
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final bgUrl = ref.watch(backgroundProvider);
+
+    return Scaffold(
+      backgroundColor: bgUrl.isNotEmpty ? Colors.transparent : const Color(0xFFF4F0F6),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        title: Text(
+          'Settings',
+          style: GoogleFonts.playfairDisplay(
+            fontSize: 28,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF2E2540),
+          ),
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 60),
+        children: [
+          // Profile
+          ProfileCard(
+            name: 'Shivani',
+            subtitle: 'shivani@example.com',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            ),
+          ),
+
+          const SizedBox(height: 28),
+
+          _SectionLabel('Account'),
+          const SizedBox(height: 12),
+          _SettingsGroup(
+            children: [
+              SettingsRow(
+                title: 'Theme',
+                icon: Icons.palette_outlined,
+                onTap: () => _showThemePicker(context, ref),
+              ),
+              SettingsRow(
+                title: 'Notification',
+                icon: Icons.notifications_none,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const NotificationSchedulingScreen(),
+                  ),
+                ),
+              ),
+              SettingsRow(
+                title: 'Lock',
+                icon: Icons.lock_outline,
+                onTap: () => _comingSoon(context),
+              ),
+            ],
+            hasBg: bgUrl.isNotEmpty,
+          ),
+
+          const SizedBox(height: 32),
+
+          _SectionLabel('Other'),
+          const SizedBox(height: 12),
+          _SettingsGroup(
+            children: [
+              SettingsRow(
+                title: 'App Help',
+                icon: Icons.help_outline,
+                onTap: () => _aboutDialog(context),
+              ),
+              SettingsRow(
+                title: 'Sign Out',
+                icon: Icons.logout,
+                onTap: () => _comingSoon(context),
+              ),
+            ],
+            hasBg: bgUrl.isNotEmpty,
+          ),
+        ],
+      ),
     );
   }
 
+  static String _themeLabel(AppThemeType type) {
+    switch (type) {
+      case AppThemeType.warm:
+        return 'Warm Cream';
+      case AppThemeType.sage:
+        return 'Mint Green';
+      case AppThemeType.lavender:
+        return 'Lavender';
+      case AppThemeType.dark:
+        return 'Dark';
+    }
+  }
+
   void _showThemePicker(BuildContext context, WidgetRef ref) {
-    final currentTheme = ref.read(themeProvider);
-    
+    final scheme = Theme.of(context).colorScheme;
     showModalBottomSheet(
       context: context,
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: scheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(24.0),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Choose Aesthetic',
-                style: Theme.of(context).textTheme.titleLarge,
+                'Choose Theme',
+                style: GoogleFonts.playfairDisplay(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-              const SizedBox(height: 24),
-              Wrap(
-                spacing: 16,
-                runSpacing: 16,
-                children: AppThemeType.values.map((themeType) {
-                  final isSelected = currentTheme == themeType;
-                  return GestureDetector(
-                    onTap: () {
-                      ref.read(themeProvider.notifier).setTheme(themeType);
-                      Navigator.pop(context);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                      decoration: BoxDecoration(
-                        color: isSelected 
-                          ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
-                          : Theme.of(context).colorScheme.surface,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: isSelected 
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
-                          width: 2,
-                        ),
-                      ),
-                      child: Text(
-                        themeType.name.toUpperCase(),
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: isSelected 
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).colorScheme.onSurface,
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 20),
+              for (final type in AppThemeType.values)
+                ListTile(
+                  leading: _ThemeSwatch(type: type, size: 34),
+                  title: Text(_themeLabel(type)),
+                  trailing: ref.watch(themeProvider) == type
+                      ? const Icon(Icons.check_circle, color: Color(0xFF65508A))
+                      : null,
+                  onTap: () {
+                    ref.read(themeProvider.notifier).setTheme(type);
+                    Navigator.pop(context);
+                  },
+                ),
             ],
           ),
-        );
-      },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final colors = Theme.of(context).colorScheme;
-    
-    return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          children: [
-            CircleAvatar(
-              radius: 50,
-              backgroundColor: colors.secondary.withOpacity(0.2),
-              child: const Text('🌸', style: TextStyle(fontSize: 50)),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Shivani\'s Space',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 24),
-            ),
-            const SizedBox(height: 48),
-            
-            _buildSettingsTile(
-              context,
-              icon: Icons.person_outline,
-              title: 'Account Info',
-              subtitle: 'Logged in as shivani',
-              color: colors.primary,
-            ),
-            const SizedBox(height: 16),
-            GestureDetector(
-              onTap: () => _showThemePicker(context, ref),
-              child: _buildSettingsTile(
-                context,
-                icon: Icons.color_lens_outlined,
-                title: 'Aesthetic',
-                subtitle: 'Tap to change theme',
-                color: colors.secondary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildSettingsTile(
-              context,
-              icon: Icons.notifications_active_outlined,
-              title: 'Notifications',
-              subtitle: 'Daily reminders',
-              color: Colors.orangeAccent,
-            ),
-            
-            const SizedBox(height: 32),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Integrations & Backup',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: colors.onSurface.withOpacity(0.5),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            GestureDetector(
-              onTap: () {
-                final habits = ref.read(habitProvider);
-                final jsonStr = jsonEncode(habits.map((h) => h.toJson()).toList());
-                Clipboard.setData(ClipboardData(text: jsonStr));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Backup JSON copied to clipboard!')),
-                );
-              },
-              child: _buildSettingsTile(
-                context,
-                icon: Icons.cloud_download_outlined,
-                title: 'Cloud Backup / Restore',
-                subtitle: 'Export data to JSON',
-                color: Colors.blueAccent,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildSettingsTile(
-              context,
-              icon: Icons.calendar_month_outlined,
-              title: 'Calendar Integration',
-              subtitle: 'Sync to Google/Apple Calendar',
-              color: Colors.green,
-              isToggle: true,
-              toggleValue: true, // Mocked as active
-            ),
-            
-            const SizedBox(height: 32),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Enterprise & Privacy',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: colors.onSurface.withOpacity(0.5),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildSettingsTile(
-              context,
-              icon: Icons.location_on_outlined,
-              title: 'Find My Device',
-              subtitle: 'Consent-gated location sharing',
-              color: Colors.redAccent,
-              isToggle: true,
-              toggleValue: false,
-            ),
-            const SizedBox(height: 16),
-            _buildSettingsTile(
-              context,
-              icon: Icons.camera_alt_outlined,
-              title: 'Remote Camera Requests',
-              subtitle: 'Require approval for camera access',
-              color: Colors.purple,
-              isToggle: true,
-              toggleValue: true,
-            ),
-            const SizedBox(height: 16),
-            _buildSettingsTile(
-              context,
-              icon: Icons.api_outlined,
-              title: 'API & Webhooks',
-              subtitle: 'Zapier, n8n, IFTTT access',
-              color: Colors.teal,
-            ),
-            const SizedBox(height: 16),
-            _buildSettingsTile(
-              context,
-              icon: Icons.admin_panel_settings_outlined,
-              title: 'Admin Dashboard',
-              subtitle: 'Manage family devices',
-              color: Colors.blueGrey,
-            ),
-            
-            const SizedBox(height: 48),
-            
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () => _logout(context, ref),
-                icon: const Icon(Icons.lock_outline, color: Colors.redAccent),
-                label: const Text('Lock App', style: TextStyle(color: Colors.redAccent)),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  side: const BorderSide(color: Colors.redAccent),
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );
   }
 
-  Widget _buildSettingsTile(BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-    bool isToggle = false,
-    bool toggleValue = false,
-  }) {
-    final surfaceColor = Theme.of(context).colorScheme.surface;
-    final textColor = Theme.of(context).colorScheme.onSurface;
-    
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: surfaceColor,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+  void _comingSoon(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('This is coming soon 🌿'),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  void _aboutDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('About Habii'),
+        content: const Text(
+          'A private habit tracker and journal, made with care for Shivani. '
+          'Warm paper, sage greens and a little doodle soul. 🌿',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
           ),
         ],
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  final String title;
+
+  const _SectionLabel(this.title);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.8,
+        color: Color(0xFF1E2420),
+      ),
+    );
+  }
+}
+
+class _SettingsGroup extends StatelessWidget {
+  final List<Widget> children;
+  final bool hasBg;
+
+  const _SettingsGroup({required this.children, this.hasBg = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: hasBg ? dart_ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8) : dart_ui.ImageFilter.blur(sigmaX: 0, sigmaY: 0),
+        child: Container(
+          decoration: BoxDecoration(
+            color: hasBg ? Colors.white.withValues(alpha: 0.75) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: hasBg ? Colors.white.withValues(alpha: 0.2) : Colors.transparent),
+            boxShadow: [
+              if (!hasBg)
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
-                Text(
-                  subtitle,
-                  style: TextStyle(fontSize: 14, color: textColor.withOpacity(0.6)),
-                ),
-              ],
-            ),
+            ],
           ),
-          if (isToggle) 
-            Switch(
-              value: toggleValue,
-              onChanged: (val) {
-                // Mock toggle change
-              },
-              activeColor: color,
-            )
-          else
-            Icon(Icons.chevron_right, color: textColor.withOpacity(0.3)),
-        ],
+          child: Column(children: children),
+        ),
+      ),
+    );
+  }
+}
+
+class _ThemeSwatch extends StatelessWidget {
+  final AppThemeType type;
+  final double size;
+
+  const _ThemeSwatch({required this.type, this.size = 28});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.themes[type]!;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: colors.primary,
+        shape: BoxShape.circle,
+        border: Border.all(color: colors.background, width: 3),
       ),
     );
   }

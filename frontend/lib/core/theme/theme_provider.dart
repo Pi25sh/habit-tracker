@@ -12,7 +12,7 @@ class ThemeNotifier extends StateNotifier<AppThemeType> {
   final SharedPreferences _prefs;
   static const _themeKey = 'app_theme_preference';
 
-  ThemeNotifier(this._prefs) : super(AppThemeType.matcha) {
+  ThemeNotifier(this._prefs) : super(AppThemeType.lavender) {
     _loadTheme();
   }
 
@@ -21,7 +21,7 @@ class ThemeNotifier extends StateNotifier<AppThemeType> {
     if (savedThemeStr != null) {
       state = AppThemeType.values.firstWhere(
         (t) => t.toString() == savedThemeStr,
-        orElse: () => AppThemeType.matcha,
+        orElse: () => AppThemeType.lavender,
       );
     }
   }

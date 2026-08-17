@@ -5,6 +5,7 @@ import '../../main.dart'; // For sharedPreferencesProvider
 import '../../data/models/habit.dart';
 import '../services/api_service.dart';
 import '../services/notification_service.dart';
+import 'package:flutter/foundation.dart';
 
 final habitProvider = StateNotifierProvider<HabitNotifier, List<Habit>>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
@@ -45,22 +46,26 @@ class HabitNotifier extends StateNotifier<List<Habit>> {
   }
 
   Future<void> _syncWithBackend([String? encodedLocal, int? localTimestamp]) async {
-    final currentEncoded = encodedLocal ?? _prefs.getString(_habitsKey) ?? '[]';
-    final currentTimestamp = localTimestamp ?? _prefs.getInt('${_habitsKey}_updated_at') ?? 0;
-    
-    final result = await ApiService.syncData('habits', currentEncoded, currentTimestamp);
-    
-    // If the server had newer data, it will return it
-    if (result != null) {
-      final remoteEncoded = result['value'] as String;
-      final remoteTimestamp = result['updated_at'] as int;
+    try {
+      final currentEncoded = encodedLocal ?? _prefs.getString(_habitsKey) ?? '[]';
+      final currentTimestamp = localTimestamp ?? _prefs.getInt('${_habitsKey}_updated_at') ?? 0;
       
-      // Update local storage directly without triggering another sync
-      await _prefs.setString(_habitsKey, remoteEncoded);
-      await _prefs.setInt('${_habitsKey}_updated_at', remoteTimestamp);
+      final result = await ApiService.syncData('habits', currentEncoded, currentTimestamp);
       
-      final List<dynamic> decoded = jsonDecode(remoteEncoded);
-      state = decoded.map((json) => Habit.fromJson(json)).toList();
+      // If the server had newer data, it will return it
+      if (result != null) {
+        final remoteEncoded = result['value'] as String;
+        final remoteTimestamp = result['updated_at'] as int;
+        
+        // Update local storage directly without triggering another sync
+        await _prefs.setString(_habitsKey, remoteEncoded);
+        await _prefs.setInt('${_habitsKey}_updated_at', remoteTimestamp);
+        
+        final List<dynamic> decoded = jsonDecode(remoteEncoded);
+        state = decoded.map((json) => Habit.fromJson(json)).toList();
+      }
+    } catch (e) {
+      debugPrint('Sync failed (backend might be offline): $e');
     }
   }
 
@@ -104,6 +109,9 @@ class HabitNotifier extends StateNotifier<List<Habit>> {
   }
 
   Future<void> toggleHabitCompletion(Habit habit, DateTime date) async {
+    // Ensure the list is growable to prevent crashes from const [] during hot reload
+    habit.completedDates = List<DateTime>.from(habit.completedDates);
+
     final dateOnly = DateTime(date.year, date.month, date.day);
     
     // Check if already completed on this date

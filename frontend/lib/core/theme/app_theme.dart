@@ -7,6 +7,8 @@ class AppTheme {
     final colors = AppColors.themes[type]!;
     final isDark = type == AppThemeType.dark;
 
+    final baseTextTheme = GoogleFonts.interTextTheme();
+
     return ThemeData(
       useMaterial3: true,
       brightness: isDark ? Brightness.dark : Brightness.light,
@@ -25,17 +27,20 @@ class AppTheme {
       appBarTheme: AppBarTheme(
         backgroundColor: colors.background,
         elevation: 0,
-        centerTitle: true,
+        centerTitle: false,
         iconTheme: IconThemeData(color: colors.textPrimary),
-        titleTextStyle: GoogleFonts.dancingScript(
+        titleTextStyle: GoogleFonts.playfairDisplay(
           color: colors.textPrimary,
           fontSize: 28,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w600,
         ),
       ),
-      textTheme: GoogleFonts.outfitTextTheme().copyWith(
-        displayLarge: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.bold),
-        titleLarge: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.bold),
+      textTheme: baseTextTheme.copyWith(
+        displayLarge: GoogleFonts.playfairDisplay(color: colors.textPrimary, fontWeight: FontWeight.bold),
+        displayMedium: GoogleFonts.playfairDisplay(color: colors.textPrimary, fontWeight: FontWeight.bold),
+        displaySmall: GoogleFonts.playfairDisplay(color: colors.textPrimary, fontWeight: FontWeight.bold),
+        titleLarge: GoogleFonts.playfairDisplay(color: colors.textPrimary, fontWeight: FontWeight.w600, fontSize: 24),
+        titleMedium: GoogleFonts.playfairDisplay(color: colors.textPrimary, fontWeight: FontWeight.w600, fontSize: 20),
         bodyLarge: TextStyle(color: colors.textPrimary, fontSize: 16),
         bodyMedium: TextStyle(color: colors.textPrimary, fontSize: 14),
         labelLarge: TextStyle(color: colors.textSecondary, fontSize: 14),
@@ -43,31 +48,34 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: colors.primary,
-          foregroundColor: isDark ? Colors.black : Colors.white,
+          foregroundColor: colors.textPrimary,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          textStyle: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
-      floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: colors.secondary,
-        foregroundColor: isDark ? Colors.black : Colors.white,
-        elevation: 4,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(20)),
+      cardTheme: CardThemeData(
+        color: colors.surface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: colors.border, width: 1),
         ),
+        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: colors.surface,
         selectedItemColor: colors.primary,
-        unselectedItemColor: colors.textSecondary.withOpacity(0.5),
-        elevation: 10,
+        unselectedItemColor: colors.textSecondary.withValues(alpha: 0.5),
+        elevation: 0,
         type: BottomNavigationBarType.fixed,
         showSelectedLabels: true,
-        showUnselectedLabels: false,
+        showUnselectedLabels: true,
+        selectedLabelStyle: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
+        unselectedLabelStyle: GoogleFonts.inter(fontSize: 12),
       ),
     );
   }

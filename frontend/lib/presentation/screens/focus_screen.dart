@@ -84,7 +84,7 @@ class _FocusScreenState extends State<FocusScreen> with SingleTickerProviderStat
                   child: CircularProgressIndicator(
                     value: progress,
                     strokeWidth: 12,
-                    backgroundColor: colors.primary.withOpacity(0.1),
+                    backgroundColor: colors.primary.withValues(alpha: 0.1),
                     valueColor: AlwaysStoppedAnimation<Color>(colors.primary),
                   ),
                 ),
@@ -98,7 +98,7 @@ class _FocusScreenState extends State<FocusScreen> with SingleTickerProviderStat
                       height: 200,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: colors.primary.withOpacity(0.05),
+                        color: colors.primary.withValues(alpha: 0.05),
                       ),
                     ),
                   ),
@@ -117,7 +117,7 @@ class _FocusScreenState extends State<FocusScreen> with SingleTickerProviderStat
                       'Stay Focused',
                       style: TextStyle(
                         fontSize: 16,
-                        color: colors.onSurface.withOpacity(0.5),
+                        color: colors.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                   ],
@@ -131,7 +131,7 @@ class _FocusScreenState extends State<FocusScreen> with SingleTickerProviderStat
                 IconButton(
                   iconSize: 32,
                   onPressed: _resetTimer,
-                  icon: Icon(Icons.refresh, color: colors.onSurface.withOpacity(0.5)),
+                  icon: Icon(Icons.refresh, color: colors.onSurface.withValues(alpha: 0.5)),
                 ),
                 const SizedBox(width: 24),
                 FloatingActionButton.large(
@@ -145,7 +145,7 @@ class _FocusScreenState extends State<FocusScreen> with SingleTickerProviderStat
                   onPressed: () {
                     // Open settings for deep work mode
                   },
-                  icon: Icon(Icons.headphones, color: colors.onSurface.withOpacity(0.5)),
+                  icon: Icon(Icons.headphones, color: colors.onSurface.withValues(alpha: 0.5)),
                 ),
               ],
             )

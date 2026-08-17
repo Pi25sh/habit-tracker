@@ -35,9 +35,9 @@ class HealthScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: colors.primary.withOpacity(0.1),
+        color: colors.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: colors.primary.withOpacity(0.3)),
+        border: Border.all(color: colors.primary.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -59,7 +59,7 @@ class HealthScreen extends ConsumerWidget {
                   'Connect with Apple Health or Google Fit',
                   style: TextStyle(
                     fontSize: 12,
-                    color: colors.onSurface.withOpacity(0.7),
+                    color: colors.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
               ],
@@ -72,7 +72,7 @@ class HealthScreen extends ConsumerWidget {
                 const SnackBar(content: Text('Health Sync activated!')),
               );
             },
-            activeColor: colors.primary,
+            activeThumbColor: colors.primary,
           ),
         ],
       ),
@@ -87,7 +87,7 @@ class HealthScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
-            color: Colors.blue.withOpacity(0.1),
+            color: Colors.blue.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 10),
           )
@@ -100,7 +100,7 @@ class HealthScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: Colors.blue.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.water_drop, color: Colors.blue),
@@ -121,7 +121,7 @@ class HealthScreen extends ConsumerWidget {
                     Text(
                       'Goal: 8 cups',
                       style: TextStyle(
-                        color: colors.onSurface.withOpacity(0.5),
+                        color: colors.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                   ],
@@ -146,7 +146,7 @@ class HealthScreen extends ConsumerWidget {
                 onPressed: () => notifier.removeWaterCup(),
                 icon: const Icon(Icons.remove_circle_outline),
                 iconSize: 32,
-                color: colors.onSurface.withOpacity(0.5),
+                color: colors.onSurface.withValues(alpha: 0.5),
               ),
               const SizedBox(width: 24),
               ElevatedButton.icon(
@@ -185,7 +185,7 @@ class HealthScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
-            color: Colors.deepPurple.withOpacity(0.1),
+            color: Colors.deepPurple.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 10),
           )
@@ -198,7 +198,7 @@ class HealthScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.deepPurple.withOpacity(0.1),
+                  color: Colors.deepPurple.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.nights_stay, color: Colors.deepPurple),
@@ -219,7 +219,7 @@ class HealthScreen extends ConsumerWidget {
                     Text(
                       'Goal: 8 hours',
                       style: TextStyle(
-                        color: colors.onSurface.withOpacity(0.5),
+                        color: colors.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                   ],
@@ -243,7 +243,7 @@ class HealthScreen extends ConsumerWidget {
             max: 12,
             divisions: 24,
             activeColor: Colors.deepPurple,
-            inactiveColor: Colors.deepPurple.withOpacity(0.1),
+            inactiveColor: Colors.deepPurple.withValues(alpha: 0.1),
             onChanged: (value) => notifier.setSleepHours(value),
           ),
         ],

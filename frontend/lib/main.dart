@@ -1,35 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
+import 'application/services/notification_service.dart';
 import 'core/theme/app_theme.dart';
-import 'data/models/habit.dart';
-import 'data/models/note_record.dart';
 import 'core/theme/theme_provider.dart';
 import 'presentation/screens/passcode_screen.dart';
 
-import 'application/services/notification_service.dart';
-
-import 'package:flutter/foundation.dart';
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Enterprise Security: Crash Logging & Error Handling
+
+  if (!kIsWeb) {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
+
   FlutterError.onError = (FlutterErrorDetails details) {
     if (kReleaseMode) {
-      // In production, log to crashlytics or custom service without stack trace
       debugPrint('Caught error in release mode: ${details.exception}');
     } else {
-      // In debug, print full stack trace
       FlutterError.presentError(details);
     }
   };
-  
-  // Initialize Notifications
+
   await NotificationService().init();
 
-  // Initialize SharedPreferences
   final prefs = await SharedPreferences.getInstance();
 
   runApp(

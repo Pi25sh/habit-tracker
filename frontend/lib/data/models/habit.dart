@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 
 class Habit {
@@ -7,7 +6,7 @@ class Habit {
   String? description;
   int color;
   String? icon;
-  String routine; // 'Morning', 'Afternoon', 'Evening'
+  String routine; // 'Morning', 'Afternoon', 'Evening', 'Night'
   List<DateTime> completedDates;
   int currentStreak;
   int longestStreak;
@@ -17,6 +16,17 @@ class Habit {
   TimeOfDay? reminderTime;
   String? linkedHabitId; // For habit stacking
 
+  // The main paper note (Todo Detail "Notes" section)
+  String? note;
+
+  // Scrapbook / Chat style entries
+  List<String> textNotes; // List of text memories ("time|message")
+  List<String> imagePaths; // Paths to attached images
+  List<String> doodlePaths; // Paths to attached doodles
+
+  // To support repeat days logic S M T W T F S
+  List<int> repeatDays; // 1=Mon, 7=Sun
+
   Habit({
     required this.id,
     required this.name,
@@ -24,7 +34,7 @@ class Habit {
     required this.color,
     this.icon,
     required this.routine,
-    this.completedDates = const [],
+    List<DateTime>? completedDates,
     this.currentStreak = 0,
     this.longestStreak = 0,
     this.frequency,
@@ -32,7 +42,16 @@ class Habit {
     this.isPaused = false,
     this.reminderTime,
     this.linkedHabitId,
-  });
+    this.note,
+    List<String>? textNotes,
+    List<String>? imagePaths,
+    List<String>? doodlePaths,
+    List<int>? repeatDays,
+  }) : completedDates = completedDates ?? [],
+       textNotes = textNotes ?? [],
+       imagePaths = imagePaths ?? [],
+       doodlePaths = doodlePaths ?? [],
+       repeatDays = repeatDays ?? [1, 2, 3, 4, 5, 6, 7];
 
   Map<String, dynamic> toJson() {
     return {
@@ -50,6 +69,11 @@ class Habit {
       'isPaused': isPaused,
       'reminderTime': reminderTime != null ? '${reminderTime!.hour}:${reminderTime!.minute}' : null,
       'linkedHabitId': linkedHabitId,
+      'note': note,
+      'textNotes': textNotes,
+      'imagePaths': imagePaths,
+      'doodlePaths': doodlePaths,
+      'repeatDays': repeatDays,
     };
   }
 
@@ -80,6 +104,11 @@ class Habit {
       isPaused: json['isPaused'] as bool? ?? false,
       reminderTime: parsedTime,
       linkedHabitId: json['linkedHabitId'] as String?,
+      note: json['note'] as String?,
+      textNotes: (json['textNotes'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      imagePaths: (json['imagePaths'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      doodlePaths: (json['doodlePaths'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      repeatDays: (json['repeatDays'] as List<dynamic>?)?.map((e) => e as int).toList() ?? [1, 2, 3, 4, 5, 6, 7],
     );
   }
 }
