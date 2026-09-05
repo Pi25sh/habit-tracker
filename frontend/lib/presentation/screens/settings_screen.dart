@@ -4,10 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/theme_provider.dart';
+import '../../application/providers/auth_provider.dart';
 import '../../application/providers/background_provider.dart';
 import '../../presentation/widgets/profile_card.dart';
 import '../../presentation/widgets/settings_row.dart';
 import 'notification_scheduling_screen.dart';
+import 'passcode_screen.dart';
 import 'profile_screen.dart';
 
 /// Settings — Profile card, Preferences, Data & Privacy and Support,
@@ -18,6 +20,8 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bgUrl = ref.watch(backgroundProvider);
+    final authState = ref.watch(authProvider);
+    final userName = authState.userName ?? 'You';
 
     return Scaffold(
       backgroundColor: bgUrl.isNotEmpty ? Colors.transparent : const Color(0xFFF4F0F6),
@@ -39,8 +43,8 @@ class SettingsScreen extends ConsumerWidget {
         children: [
           // Profile
           ProfileCard(
-            name: 'Shivani',
-            subtitle: 'shivani@example.com',
+            name: userName,
+            subtitle: userName.contains('@') ? userName : '$userName@example.com',
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const ProfileScreen()),
@@ -52,6 +56,7 @@ class SettingsScreen extends ConsumerWidget {
           _SectionLabel('Account'),
           const SizedBox(height: 12),
           _SettingsGroup(
+            hasBg: bgUrl.isNotEmpty,
             children: [
               SettingsRow(
                 title: 'Theme',
@@ -68,13 +73,7 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-              SettingsRow(
-                title: 'Lock',
-                icon: Icons.lock_outline,
-                onTap: () => _comingSoon(context),
-              ),
             ],
-            hasBg: bgUrl.isNotEmpty,
           ),
 
           const SizedBox(height: 32),
@@ -82,6 +81,7 @@ class SettingsScreen extends ConsumerWidget {
           _SectionLabel('Other'),
           const SizedBox(height: 12),
           _SettingsGroup(
+            hasBg: bgUrl.isNotEmpty,
             children: [
               SettingsRow(
                 title: 'App Help',
@@ -91,10 +91,9 @@ class SettingsScreen extends ConsumerWidget {
               SettingsRow(
                 title: 'Sign Out',
                 icon: Icons.logout,
-                onTap: () => _comingSoon(context),
+                onTap: () => _confirmSignOut(context, ref),
               ),
             ],
-            hasBg: bgUrl.isNotEmpty,
           ),
         ],
       ),
@@ -155,13 +154,33 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  void _comingSoon(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('This is coming soon 🌿'),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  void _confirmSignOut(BuildContext context, WidgetRef ref) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Sign Out'),
+        content: const Text('Are you sure you want to sign out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context); // Close dialog
+              await ref.read(authProvider.notifier).logout();
+              if (context.mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const PasscodeScreen()),
+                  (_) => false,
+                );
+              }
+            },
+            child: const Text('Sign Out', style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
       ),
     );
   }
@@ -172,9 +191,9 @@ class SettingsScreen extends ConsumerWidget {
       builder: (context) => AlertDialog(
         backgroundColor: Theme.of(context).colorScheme.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('About Habii'),
+        title: const Text('About Habit Flow'),
         content: const Text(
-          'A private habit tracker and journal, made with care for Shivani. '
+          'Your personal habit tracker and journal. '
           'Warm paper, sage greens and a little doodle soul. 🌿',
         ),
         actions: [

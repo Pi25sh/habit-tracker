@@ -20,7 +20,7 @@ class HealthScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(24.0),
         child: Column(
           children: [
-            _buildIntegrationBanner(context, colors),
+            _buildIntegrationBanner(context, healthNotifier, colors),
             const SizedBox(height: 32),
             _buildWaterTracker(context, waterCups, healthNotifier, colors),
             const SizedBox(height: 32),
@@ -31,7 +31,7 @@ class HealthScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildIntegrationBanner(BuildContext context, ColorScheme colors) {
+  Widget _buildIntegrationBanner(BuildContext context, HealthNotifier notifier, ColorScheme colors) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -66,10 +66,11 @@ class HealthScreen extends ConsumerWidget {
             ),
           ),
           Switch(
-            value: true, // Mock active state
+            value: notifier.isSyncEnabled(),
             onChanged: (val) {
+              notifier.setSyncEnabled(val);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Health Sync activated!')),
+                SnackBar(content: Text(val ? 'Health Sync activated!' : 'Health Sync deactivated.')),
               );
             },
             activeThumbColor: colors.primary,

@@ -2,12 +2,31 @@ import 'dart:ui' as dart_ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../application/providers/auth_provider.dart';
 import '../../application/providers/habit_provider.dart';
 import '../../application/providers/background_provider.dart';
+import '../../application/providers/navigation_provider.dart';
 import '../../data/models/habit.dart';
 import 'package:intl/intl.dart';
 import 'create_habit_screen.dart';
+import 'notification_scheduling_screen.dart';
 import '../widgets/add_bg_dialog.dart';
+
+/// Opens the create-habit bottom sheet. Used by both the "Add Habit" action
+/// and the dashboard empty state.
+void _openAddHabit(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => BackdropFilter(
+      filter: dart_ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+      child: const CreateHabitScreen(),
+    ),
+  );
+}
+
+String _capitalize(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
 class ShivaniDashboardScreen extends ConsumerWidget {
   const ShivaniDashboardScreen({super.key});
@@ -16,6 +35,9 @@ class ShivaniDashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final habits = ref.watch(habitProvider).where((h) => !h.isPaused).toList();
     final bgUrl = ref.watch(backgroundProvider);
+    final authState = ref.watch(authProvider);
+    final userName =
+        _capitalize((authState.userName ?? 'You').trim().split('@').first);
 
     return Scaffold(
       backgroundColor: bgUrl.isNotEmpty ? Colors.transparent : const Color(0xFFFDFCFB), // Very clean off-white
@@ -33,12 +55,14 @@ class ShivaniDashboardScreen extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        'Ciao, Shivani',
+                        'Ciao, $userName',
                         style: GoogleFonts.kalam(
                           fontSize: 42,
                           fontWeight: FontWeight.w600,
                           color: const Color(0xFF1C3A5A), // Dark navy
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -46,7 +70,7 @@ class ShivaniDashboardScreen extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 24),
-                
+
                 // Feature Grid
                 GridView.count(
                   shrinkWrap: true,
@@ -56,17 +80,54 @@ class ShivaniDashboardScreen extends ConsumerWidget {
                   childAspectRatio: 2.5,
                   physics: const NeverScrollableScrollPhysics(),
                   children: [
-                    _FeatureTile(icon: Icons.calendar_month_outlined, title: DateFormat('dd MMM, EEEE').format(DateTime.now()), color: const Color(0xFFFCF4E0), iconBgColor: const Color(0xFFFFB300), textColor: const Color(0xFF1C3A5A), hasBg: bgUrl.isNotEmpty),
-                    _FeatureTile(icon: Icons.format_quote_rounded, title: 'Thoughts', color: const Color(0xFFF3F4E6), iconBgColor: const Color(0xFF81B053), textColor: const Color(0xFF1C3A5A), hasBg: bgUrl.isNotEmpty),
-                    _FeatureTile(icon: Icons.favorite_border_rounded, title: 'Affirmations', color: const Color(0xFFEBF1F6), iconBgColor: const Color(0xFF6B92CB), textColor: const Color(0xFF1C3A5A), hasBg: bgUrl.isNotEmpty),
-                    _FeatureTile(icon: Icons.notifications_none_rounded, title: 'Reminders', color: const Color(0xFFF4F6EC), iconBgColor: const Color(0xFF5A7851), textColor: const Color(0xFF1C3A5A), hasBg: bgUrl.isNotEmpty),
+                    _FeatureTile(
+                      icon: Icons.calendar_month_outlined,
+                      title: DateFormat('dd MMM, EEEE').format(DateTime.now()),
+                      color: const Color(0xFFFCF4E0),
+                      iconBgColor: const Color(0xFFFFB300),
+                      textColor: const Color(0xFF1C3A5A),
+                      hasBg: bgUrl.isNotEmpty,
+                      onTap: () => ref.read(navigationIndexProvider.notifier).state = 4,
+                    ),
+                    _FeatureTile(
+                      icon: Icons.format_quote_rounded,
+                      title: 'Thoughts',
+                      color: const Color(0xFFF3F4E6),
+                      iconBgColor: const Color(0xFF81B053),
+                      textColor: const Color(0xFF1C3A5A),
+                      hasBg: bgUrl.isNotEmpty,
+                      onTap: () => ref.read(navigationIndexProvider.notifier).state = 3,
+                    ),
+                    _FeatureTile(
+                      icon: Icons.favorite_border_rounded,
+                      title: 'Affirmations',
+                      color: const Color(0xFFEBF1F6),
+                      iconBgColor: const Color(0xFF6B92CB),
+                      textColor: const Color(0xFF1C3A5A),
+                      hasBg: bgUrl.isNotEmpty,
+                      onTap: () => ref.read(navigationIndexProvider.notifier).state = 1,
+                    ),
+                    _FeatureTile(
+                      icon: Icons.notifications_none_rounded,
+                      title: 'Reminders',
+                      color: const Color(0xFFF4F6EC),
+                      iconBgColor: const Color(0xFF5A7851),
+                      textColor: const Color(0xFF1C3A5A),
+                      hasBg: bgUrl.isNotEmpty,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const NotificationSchedulingScreen()),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 24),
-                
+
                 // Action Buttons
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 16,
+                  runSpacing: 12,
                   children: [
                     _ActionButton(
                       icon: Icons.image_outlined,
@@ -74,29 +135,21 @@ class ShivaniDashboardScreen extends ConsumerWidget {
                       hasBg: bgUrl.isNotEmpty,
                       onTap: () => showAddBgDialog(context, ref),
                     ),
-                    const SizedBox(width: 16),
                     _ActionButton(
                       icon: Icons.add_circle_outline_rounded,
                       label: 'Add Habit',
                       hasBg: bgUrl.isNotEmpty,
-                      onTap: () => showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        backgroundColor: Colors.transparent,
-                        builder: (_) => BackdropFilter(
-                          filter: dart_ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                          child: const CreateHabitScreen(),
-                        ),
-                      ),
+                      onTap: () => _openAddHabit(context),
                     ),
                   ],
                 ),
                 const SizedBox(height: 24),
-                
+
                 // Habits List
                 if (habits.isEmpty)
-                  Column(
-                    children: _placeholderHabits(),
+                  _EmptyHabits(
+                    hasBg: bgUrl.isNotEmpty,
+                    onAdd: () => _openAddHabit(context),
                   )
                 else
                   ...habits.map((habit) => _HabitRow(habit: habit, colorTheme: const Color(0xFF67793D))),
@@ -135,14 +188,59 @@ class ShivaniDashboardScreen extends ConsumerWidget {
     );
   }
 
-  List<Widget> _placeholderHabits() {
-    return [
-      _HabitRow(habit: Habit(id: '1', name: 'Habit', icon: '', routine: 'Anytime', color: 0xFF5A7851), colorTheme: const Color(0xFF5A7851), bgColor: const Color(0xFFFCF4E0)), // Cream
-      _HabitRow(habit: Habit(id: '2', name: 'Habit', icon: '', routine: 'Anytime', color: 0xFF5A7851), colorTheme: const Color(0xFF5A7851), bgColor: const Color(0xFFF3F4E6)), // Light green
-      _HabitRow(habit: Habit(id: '3', name: 'Habit', icon: '', routine: 'Anytime', color: 0xFF4A5D33), colorTheme: const Color(0xFF4A5D33), bgColor: const Color(0xFFF4F6EC)), // Beige/olive
-      _HabitRow(habit: Habit(id: '4', name: 'Habit', icon: '', routine: 'Anytime', color: 0xFF6B92CB), colorTheme: const Color(0xFF6B92CB), bgColor: const Color(0xFFEBF1F6)), // Light blue
-      _HabitRow(habit: Habit(id: '5', name: 'Habit', icon: '', routine: 'Anytime', color: 0xFF1C3A5A), colorTheme: const Color(0xFF1C3A5A), bgColor: const Color(0xFFEBF1F6)), // Light blue
-    ];
+  }
+
+class _EmptyHabits extends StatelessWidget {
+  final bool hasBg;
+  final VoidCallback onAdd;
+
+  const _EmptyHabits({required this.hasBg, required this.onAdd});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      decoration: BoxDecoration(
+        color: hasBg ? Colors.white.withValues(alpha: 0.75) : const Color(0xFFF4F6EC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE3E7DC)),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.check_circle_outline, size: 40, color: Color(0xFF67793D)),
+          const SizedBox(height: 12),
+          Text(
+            'No habits yet',
+            style: GoogleFonts.kalam(
+              fontSize: 22,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF1C3A5A),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Build momentum one small step at a time.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.nunito(
+              fontSize: 14,
+              color: const Color(0xFF7A7A7A),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: onAdd,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF67793D),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            ),
+            child: const Text('Add a habit'),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -153,18 +251,22 @@ class _FeatureTile extends StatelessWidget {
   final Color iconBgColor;
   final Color textColor;
   final bool hasBg;
+  final VoidCallback? onTap;
 
-  const _FeatureTile({required this.icon, required this.title, required this.color, required this.iconBgColor, required this.textColor, this.hasBg = false});
+  const _FeatureTile({required this.icon, required this.title, required this.color, required this.iconBgColor, required this.textColor, this.hasBg = false, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: hasBg ? color.withValues(alpha: 0.75) : color,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Row(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: hasBg ? color.withValues(alpha: 0.75) : color,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Container(
@@ -190,6 +292,7 @@ class _FeatureTile extends StatelessWidget {
             ),
           ),
         ],
+        ),
       ),
     );
   }
@@ -236,9 +339,8 @@ class _ActionButton extends StatelessWidget {
 class _HabitRow extends ConsumerWidget {
   final Habit habit;
   final Color colorTheme;
-  final Color? bgColor;
 
-  const _HabitRow({required this.habit, required this.colorTheme, this.bgColor});
+  const _HabitRow({required this.habit, required this.colorTheme});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -249,7 +351,7 @@ class _HabitRow extends ConsumerWidget {
     );
     final bgMap = ref.watch(backgroundProvider);
     final hasBg = bgMap.isNotEmpty; // For simplicity in dashboard, if any bg is active (or check index 0)
-    final baseColor = bgColor ?? const Color(0xFFF9FAF7);
+    final baseColor = const Color(0xFFF9FAF7);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),

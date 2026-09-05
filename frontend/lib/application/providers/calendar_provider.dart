@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../main.dart'; // For sharedPreferencesProvider
+import '../../main.dart';
 import '../../data/models/calendar_models.dart';
+import '../services/api_service.dart';
 
 class CalendarState {
   final List<CalendarEvent> events;
@@ -38,10 +40,11 @@ class CalendarNotifier extends StateNotifier<CalendarState> {
   static const _eventsKey = 'my_calendar_events_data';
   static const _remindersKey = 'my_calendar_reminders_data';
   static const _specialDaysKey = 'my_calendar_special_days_data';
+  static const _syncEnabledKey = 'calendar_sync_enabled';
 
   CalendarNotifier(this._prefs) : super(CalendarState()) {
     _loadData();
-    _syncWithBackend(); // Sync on startup
+    _syncAll();
   }
 
   void _loadData() {
@@ -80,6 +83,11 @@ class CalendarNotifier extends StateNotifier<CalendarState> {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     await _prefs.setInt('${_eventsKey}_updated_at', timestamp);
     state = state.copyWith(events: items);
+
+    final syncEnabled = _prefs.getBool(_syncEnabledKey) ?? true;
+    if (syncEnabled) {
+      _syncSingle(_eventsKey, encoded, timestamp);
+    }
   }
 
   Future<void> _saveReminders(List<CalendarReminder> items) async {
@@ -88,6 +96,11 @@ class CalendarNotifier extends StateNotifier<CalendarState> {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     await _prefs.setInt('${_remindersKey}_updated_at', timestamp);
     state = state.copyWith(reminders: items);
+
+    final syncEnabled = _prefs.getBool(_syncEnabledKey) ?? true;
+    if (syncEnabled) {
+      _syncSingle(_remindersKey, encoded, timestamp);
+    }
   }
 
   Future<void> _saveSpecialDays(List<SpecialDay> items) async {
@@ -96,10 +109,46 @@ class CalendarNotifier extends StateNotifier<CalendarState> {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     await _prefs.setInt('${_specialDaysKey}_updated_at', timestamp);
     state = state.copyWith(specialDays: items);
+
+    final syncEnabled = _prefs.getBool(_syncEnabledKey) ?? true;
+    if (syncEnabled) {
+      _syncSingle(_specialDaysKey, encoded, timestamp);
+    }
   }
 
-  Future<void> _syncWithBackend() async {
-    // Basic sync stub. 
+  Future<void> _syncAll() async {
+    try {
+      await _syncSingle(_eventsKey, _prefs.getString(_eventsKey) ?? '[]',
+          _prefs.getInt('${_eventsKey}_updated_at') ?? 0);
+      await _syncSingle(_remindersKey, _prefs.getString(_remindersKey) ?? '[]',
+          _prefs.getInt('${_remindersKey}_updated_at') ?? 0);
+      await _syncSingle(_specialDaysKey, _prefs.getString(_specialDaysKey) ?? '[]',
+          _prefs.getInt('${_specialDaysKey}_updated_at') ?? 0);
+    } catch (e) {
+      debugPrint('Calendar sync failed: $e');
+    }
+  }
+
+  Future<void> _syncSingle(String key, String encodedLocal, int localTimestamp) async {
+    try {
+      final result = await ApiService.syncData(key, encodedLocal, localTimestamp);
+      if (result != null) {
+        final remoteEncoded = result['value'] as String;
+        final remoteTimestamp = result['updated_at'] as int;
+        await _prefs.setString(key, remoteEncoded);
+        await _prefs.setInt('${key}_updated_at', remoteTimestamp);
+        _loadData(); // Reload from preferences
+      }
+    } catch (e) {
+      debugPrint('Calendar $key sync failed: $e');
+    }
+  }
+
+  Future<void> setSyncEnabled(bool enabled) async {
+    await _prefs.setBool(_syncEnabledKey, enabled);
+    if (enabled) {
+      _syncAll();
+    }
   }
 
   // --- EVENTS ---

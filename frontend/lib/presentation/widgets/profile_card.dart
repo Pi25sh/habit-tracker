@@ -2,7 +2,7 @@ import 'dart:ui' as dart_ui;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// The personal profile block: avatar + "Shivani" + tagline, used on the
+/// The personal profile block: avatar + name + tagline, used on the
 /// Settings page and Profile screen.
 class ProfileCard extends StatelessWidget {
   final String name;
@@ -13,7 +13,7 @@ class ProfileCard extends StatelessWidget {
 
   const ProfileCard({
     super.key,
-    this.name = 'Shivani',
+    this.name = 'You',
     required this.subtitle,
     this.onTap,
     this.avatarEmoji,

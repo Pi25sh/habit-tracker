@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../application/providers/task_provider.dart';
 import '../../application/providers/background_provider.dart';
-import '../../data/models/task.dart';
 import '../widgets/add_bucket_list_modal.dart';
 import '../widgets/add_bg_dialog.dart';
 
@@ -37,22 +36,28 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        'Bucket List',
-                        style: GoogleFonts.kalam(
-                          fontSize: 36,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF1E2F23),
+                  Flexible(
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            'Bucket List',
+                            style: GoogleFonts.kalam(
+                              fontSize: 32,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF1E2F23),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Icon(Icons.energy_savings_leaf_outlined, color: Color(0xFF5A7851), size: 24),
-                    ],
+                        const SizedBox(width: 8),
+                        const Icon(Icons.energy_savings_leaf_outlined, color: Color(0xFF5A7851), size: 24),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 12),
                   GestureDetector(
                     onTap: () => showAddBgDialog(context, ref),
                     child: Container(
@@ -115,42 +120,48 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
 
             // Bucket List Items
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                children: tasks.isEmpty ? _placeholderItems() : tasks.map((task) {
-                  return _BucketListItem(
-                    title: task.name,
-                    tag: task.category ?? 'Dreams',
-                    tagColor: _getCatColor(task.category),
-                    tagBg: _getCatBgColor(task.category),
-                    imageUrl: task.imagePaths.isNotEmpty 
-                        ? task.imagePaths.first 
-                        : 'https://images.unsplash.com/photo-1490730141103-6cac27aaab94?auto=format&fit=crop&w=200&q=80',
-                    isCompleted: task.isCompleted,
-                    hasBg: bgUrl.isNotEmpty,
-                    onToggle: () => ref.read(taskProvider.notifier).toggleTaskCompletion(task),
-                  );
-                }).toList(),
-              ),
+              child: tasks.isEmpty
+                  ? _EmptyBucketList(
+                      onAdd: _openAddModal,
+                      hasBg: bgUrl.isNotEmpty,
+                    )
+                  : ListView(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                      children: tasks.map((task) {
+                        return _BucketListItem(
+                          title: task.name,
+                          tag: task.category ?? 'Dreams',
+                          tagColor: _getCatColor(task.category),
+                          tagBg: _getCatBgColor(task.category),
+                          icon: _getCatIcon(task.category),
+                          isCompleted: task.isCompleted,
+                          hasBg: bgUrl.isNotEmpty,
+                          onToggle: () => ref.read(taskProvider.notifier).toggleTaskCompletion(task),
+                        );
+                      }).toList(),
+                    ),
             ),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (_) => BackdropFilter(
-              filter: dart_ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: const AddBucketListModal(),
-            ),
-          );
-        },
+        heroTag: 'todoFab',
+        onPressed: _openAddModal,
         backgroundColor: const Color(0xFF5A7851),
         shape: const CircleBorder(),
         child: const Icon(Icons.add, color: Colors.white, size: 32),
+      ),
+    );
+  }
+
+  void _openAddModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => BackdropFilter(
+        filter: dart_ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: const AddBucketListModal(),
       ),
     );
   }
@@ -165,36 +176,73 @@ class _TodoScreenState extends ConsumerState<TodoScreen> {
     return const Color(0xFFF4F8FE); // default
   }
 
-  List<Widget> _placeholderItems() {
-    return const [
-      _BucketListItem(
-        title: 'Go on a Road Trip Across India',
-        tag: 'Travel',
-        tagColor: Color(0xFF4A90E2),
-        tagBg: Color(0xFFF4F8FE),
-        imageUrl: 'https://images.unsplash.com/photo-1513346940221-6f673d962e97?auto=format&fit=crop&w=200&q=80',
-        isCompleted: false,
-        hasBg: false,
+  IconData _getCatIcon(String? cat) {
+    switch (cat) {
+      case 'Travel':
+        return Icons.flight_takeoff;
+      case 'Personal':
+        return Icons.favorite_border;
+      default:
+        return Icons.emoji_events_outlined;
+    }
+  }
+}
+
+class _EmptyBucketList extends StatelessWidget {
+  final VoidCallback onAdd;
+  final bool hasBg;
+
+  const _EmptyBucketList({required this.onAdd, required this.hasBg});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 24),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+        decoration: BoxDecoration(
+          color: hasBg ? Colors.white.withValues(alpha: 0.75) : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFEFEFEF)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.emoji_events_outlined, size: 44, color: Color(0xFF5A7851)),
+            const SizedBox(height: 12),
+            Text(
+              'No bucket list items yet',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.nunito(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF1E2F23),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Add the things you dream of doing.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.nunito(
+                fontSize: 14,
+                color: const Color(0xFF7A7A7A),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: onAdd,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF5A7851),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              ),
+              child: const Text('Add a dream'),
+            ),
+          ],
+        ),
       ),
-      _BucketListItem(
-        title: 'Watch Northern Lights in Iceland',
-        tag: 'Travel',
-        tagColor: Color(0xFF4A90E2),
-        tagBg: Color(0xFFF4F8FE),
-        imageUrl: 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?auto=format&fit=crop&w=200&q=80',
-        isCompleted: false,
-        hasBg: false,
-      ),
-      _BucketListItem(
-        title: 'Learn to Play Guitar',
-        tag: 'Personal',
-        tagColor: Color(0xFF9C27B0),
-        tagBg: Color(0xFFF8EFFF),
-        imageUrl: 'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?auto=format&fit=crop&w=200&q=80',
-        isCompleted: false,
-        hasBg: false,
-      ),
-    ];
+    );
   }
 }
 
@@ -203,7 +251,7 @@ class _BucketListItem extends StatelessWidget {
   final String tag;
   final Color tagColor;
   final Color tagBg;
-  final String imageUrl;
+  final IconData icon;
   final bool isCompleted;
   final bool hasBg;
   final VoidCallback? onToggle;
@@ -213,7 +261,7 @@ class _BucketListItem extends StatelessWidget {
     required this.tag,
     required this.tagColor,
     required this.tagBg,
-    required this.imageUrl,
+    required this.icon,
     required this.isCompleted,
     required this.hasBg,
     this.onToggle,
@@ -234,15 +282,16 @@ class _BucketListItem extends StatelessWidget {
           ),
       child: Row(
         children: [
-          // Image flush left
-          ClipRRect(
-            borderRadius: const BorderRadius.horizontal(left: Radius.circular(22)),
-            child: Image.network(
-              imageUrl,
-              width: 110,
-              height: 110,
-              fit: BoxFit.cover,
+          // Leading category visual (local, no network)
+          Container(
+            width: 110,
+            height: 110,
+            decoration: BoxDecoration(
+              color: tagBg,
+              borderRadius: const BorderRadius.horizontal(left: Radius.circular(22)),
             ),
+            alignment: Alignment.center,
+            child: Icon(icon, color: tagColor, size: 34),
           ),
           const SizedBox(width: 16),
           

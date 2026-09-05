@@ -44,16 +44,20 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'My Journal',
-                    style: GoogleFonts.playfairDisplay(
-                      fontSize: 40,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF1E2420),
+                  Flexible(
+                    child: Text(
+                      'My Journal',
+                      style: GoogleFonts.playfairDisplay(
+                        fontSize: 34,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF1E2420),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  const SizedBox(width: 12),
                   GestureDetector(
                     onTap: () => showAddBgDialog(context, ref),
                     child: Container(
@@ -101,31 +105,19 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
 
             // Journal List
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
-                itemCount: entries.isEmpty ? 3 : entries.length,
-                itemBuilder: (context, index) {
-                  if (entries.isEmpty) {
-                    // Placeholder data for matching screenshot
-                    final entry = JournalEntry(
-                      id: index.toString(),
-                      title: index == 0 ? 'A grateful heart' : index == 1 ? 'Morning thoughts' : 'Small wins',
-                      body: index == 0 
-                        ? 'Today I felt truly grateful for the little things...' 
-                        : index == 1 
-                          ? 'Started the day with meditation and a cup...'
-                          : 'Completed my workout and stayed focused...',
-                      date: DateTime.now().subtract(Duration(days: index)),
-                      categoryId: 'All',
-                      mood: '',
-                      createdAt: DateTime.now().subtract(Duration(days: index)),
-                      updatedAt: DateTime.now().subtract(Duration(days: index)),
-                    );
-                    return JournalCard(entry: entry, hasBg: bgUrl.isNotEmpty);
-                  }
-                  return JournalCard(entry: entries[index], hasBg: bgUrl.isNotEmpty);
-                },
-              ),
+              child: entries.isEmpty
+                  ? _EmptyJournal(
+                      onCompose: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const JournalEditorScreen()),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+                      itemCount: entries.length,
+                      itemBuilder: (context, index) =>
+                          JournalCard(entry: entries[index], hasBg: bgUrl.isNotEmpty),
+                    ),
             ),
           ],
         ),
@@ -144,6 +136,63 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
           shape: const CircleBorder(),
           elevation: 4,
           child: const Icon(Icons.add, color: Colors.black87, size: 36),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyJournal extends StatelessWidget {
+  final VoidCallback onCompose;
+
+  const _EmptyJournal({required this.onCompose});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 24),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFEFEFEF)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.auto_stories_outlined, size: 44, color: Color(0xFFB08968)),
+            const SizedBox(height: 12),
+            Text(
+              'No journal entries yet',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.nunito(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF1E2420),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Capture a thought, a moment, or a small win.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.nunito(
+                fontSize: 14,
+                color: const Color(0xFF7A7A7A),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: onCompose,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFFB74D),
+                foregroundColor: Colors.black87,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              ),
+              child: const Text('Write first entry'),
+            ),
+          ],
         ),
       ),
     );

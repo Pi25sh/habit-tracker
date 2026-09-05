@@ -1,17 +1,71 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import '../../application/providers/habit_provider.dart';
 
-class CalendarAnalyticsScreen extends StatefulWidget {
+class CalendarAnalyticsScreen extends ConsumerStatefulWidget {
   const CalendarAnalyticsScreen({super.key});
 
   @override
-  State<CalendarAnalyticsScreen> createState() => _CalendarAnalyticsScreenState();
+  ConsumerState<CalendarAnalyticsScreen> createState() => _CalendarAnalyticsScreenState();
 }
 
-class _CalendarAnalyticsScreenState extends State<CalendarAnalyticsScreen> {
+class _CalendarAnalyticsScreenState extends ConsumerState<CalendarAnalyticsScreen> {
   final List<String> _weekdays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  DateTime _currentMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
+  
+  void _prevMonth() {
+    setState(() {
+      _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1, 1);
+    });
+  }
+
+  void _nextMonth() {
+    setState(() {
+      _currentMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 1);
+    });
+  }
   
   @override
   Widget build(BuildContext context) {
+    final habits = ref.watch(habitProvider);
+    
+    // Calculate calendar grid
+    final daysInMonth = DateUtils.getDaysInMonth(_currentMonth.year, _currentMonth.month);
+    final firstDayOffset = _currentMonth.weekday - 1; // 0 for Monday, 6 for Sunday
+    final totalCells = ((daysInMonth + firstDayOffset) / 7).ceil() * 7;
+    
+    // Analytics calculations for current month
+    int totalHabitsCompleted = 0;
+    int perfectDays = 0;
+    int bestStreak = 0; // we can use the max longestStreak from habits, or calculate monthly
+    int totalPossibleHabits = habits.length * daysInMonth;
+    
+    // Calculate completions per day
+    Map<int, int> completionsPerDay = {};
+    for (int day = 1; day <= daysInMonth; day++) {
+      int count = 0;
+      for (var habit in habits) {
+        if (habit.completedDates.any((d) => d.year == _currentMonth.year && d.month == _currentMonth.month && d.day == day)) {
+          count++;
+          totalHabitsCompleted++;
+        }
+      }
+      completionsPerDay[day] = count;
+      if (habits.isNotEmpty && count == habits.length) {
+        perfectDays++;
+      }
+    }
+    
+    for (var habit in habits) {
+      if (habit.longestStreak > bestStreak) {
+        bestStreak = habit.longestStreak;
+      }
+    }
+    
+    final completionRate = totalPossibleHabits > 0 ? (totalHabitsCompleted / totalPossibleHabits * 100).toInt() : 0;
+    final maxDailyCompletions = habits.isNotEmpty ? habits.length : 1;
+
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7F2),
       appBar: AppBar(
@@ -30,11 +84,11 @@ class _CalendarAnalyticsScreenState extends State<CalendarAnalyticsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('August 2026', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black)),
+                Text(DateFormat('MMMM yyyy').format(_currentMonth), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black)),
                 Row(
                   children: [
-                    IconButton(icon: const Icon(Icons.chevron_left, color: Colors.black54), onPressed: () {}),
-                    IconButton(icon: const Icon(Icons.chevron_right, color: Colors.black54), onPressed: () {}),
+                    IconButton(icon: const Icon(Icons.chevron_left, color: Colors.black54), onPressed: _prevMonth),
+                    IconButton(icon: const Icon(Icons.chevron_right, color: Colors.black54), onPressed: _nextMonth),
                   ],
                 ),
               ],
@@ -60,7 +114,7 @@ class _CalendarAnalyticsScreenState extends State<CalendarAnalyticsScreen> {
                   ),
                   const SizedBox(height: 16),
                   
-                  // Calendar Days Grid Mock
+                  // Calendar Days Grid
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -69,23 +123,23 @@ class _CalendarAnalyticsScreenState extends State<CalendarAnalyticsScreen> {
                       mainAxisSpacing: 12,
                       crossAxisSpacing: 12,
                     ),
-                    itemCount: 35, // 5 weeks layout
+                    itemCount: totalCells,
                     itemBuilder: (context, index) {
-                      final day = index - 2; // Offset for starting day
-                      final isCurrentMonth = day > 0 && day <= 31;
+                      final day = index - firstDayOffset + 1; 
+                      final isCurrentMonth = day > 0 && day <= daysInMonth;
                       if (!isCurrentMonth) {
                         return const SizedBox();
                       }
                       
-                      // Mock activity levels
-                      final activityLevel = (day % 4 == 0) ? 1.0 : ((day % 3 == 0) ? 0.6 : 0.2);
-                      final hasPerfectDay = day == 15 || day == 22;
+                      final completedCount = completionsPerDay[day] ?? 0;
+                      final activityLevel = habits.isNotEmpty ? completedCount / maxDailyCompletions : 0.0;
+                      final hasPerfectDay = habits.isNotEmpty && completedCount == maxDailyCompletions;
                       
                       return Container(
                         decoration: BoxDecoration(
                           color: hasPerfectDay 
                               ? Colors.amber 
-                              : const Color(0xFF673AB7).withValues(alpha: activityLevel),
+                              : const Color(0xFF673AB7).withValues(alpha: activityLevel > 0 ? (0.2 + activityLevel * 0.8) : 0.05),
                           shape: BoxShape.circle,
                         ),
                         child: Center(
@@ -111,17 +165,17 @@ class _CalendarAnalyticsScreenState extends State<CalendarAnalyticsScreen> {
             
             Row(
               children: [
-                _buildHighlightCard('Perfect Days', '2', Icons.star, Colors.amber),
+                _buildHighlightCard('Perfect Days', '$perfectDays', Icons.star, Colors.amber),
                 const SizedBox(width: 16),
-                _buildHighlightCard('Total Habits', '142', Icons.check_circle, Colors.green),
+                _buildHighlightCard('Total Habits', '$totalHabitsCompleted', Icons.check_circle, Colors.green),
               ],
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                _buildHighlightCard('Best Streak', '14 Days', Icons.local_fire_department, Colors.orange),
+                _buildHighlightCard('Best Streak', '$bestStreak Days', Icons.local_fire_department, Colors.orange),
                 const SizedBox(width: 16),
-                _buildHighlightCard('Completion', '84%', Icons.pie_chart, Colors.blue),
+                _buildHighlightCard('Completion', '$completionRate%', Icons.pie_chart, Colors.blue),
               ],
             ),
           ],

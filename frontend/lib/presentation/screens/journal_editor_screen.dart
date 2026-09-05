@@ -134,7 +134,7 @@ class _JournalEditorScreenState extends ConsumerState<JournalEditorScreen> {
             onPressed: () async {
               if (signatureController.isNotEmpty) {
                 final bytes = await signatureController.toPngBytes();
-                Navigator.pop(context, bytes);
+                if (context.mounted) Navigator.pop(context, bytes);
               } else {
                 Navigator.pop(context);
               }
@@ -312,7 +312,8 @@ class _JournalEditorScreenState extends ConsumerState<JournalEditorScreen> {
                         constraints: const BoxConstraints(minHeight: 250),
                         child: MarkdownBody(
                           data: _bodyController.text.isEmpty ? '*No content*' : _bodyController.text,
-                          imageBuilder: (uri, title, alt) {
+                          sizedImageBuilder: (config) {
+                            final uri = config.uri;
                             if (uri.scheme == 'data') {
                               final base64String = uri.path.split(',').last;
                               final bytes = base64Decode(base64String);
@@ -420,7 +421,7 @@ class _JournalEditorScreenState extends ConsumerState<JournalEditorScreen> {
                           Switch(
                             value: _remember,
                             onChanged: (v) => setState(() => _remember = v),
-                            activeColor: Colors.white,
+                            activeThumbColor: Colors.white,
                             activeTrackColor: const Color(0xFF67793D),
                             inactiveThumbColor: Colors.white,
                             inactiveTrackColor: const Color(0xFFD4D4D4),

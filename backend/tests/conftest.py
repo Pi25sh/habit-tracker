@@ -4,7 +4,7 @@ import uuid
 
 os.environ.setdefault("SECRET_KEY", "test-secret-key-not-for-production-0000")
 os.environ.setdefault("LOCATION_ENCRYPTION_KEY", "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=")
-os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://x:x@localhost/x")
+os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///./test.db")
 os.environ.setdefault("S3_ACCESS_KEY", "test")
 os.environ.setdefault("S3_SECRET_KEY", "test")
 

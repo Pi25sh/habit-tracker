@@ -1,39 +1,95 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../application/providers/auth_provider.dart';
 import 'main_layout.dart';
 
-class PasscodeScreen extends StatefulWidget {
+class PasscodeScreen extends ConsumerStatefulWidget {
   const PasscodeScreen({super.key});
 
   @override
-  State<PasscodeScreen> createState() => _PasscodeScreenState();
+  ConsumerState<PasscodeScreen> createState() => _PasscodeScreenState();
 }
 
-class _PasscodeScreenState extends State<PasscodeScreen> {
-  static const String _singleUserId = 'shivani';
-  static const String _singlePassword = 'shivba';
-
-  final _emailController = TextEditingController(text: _singleUserId);
-  final _passwordController = TextEditingController(text: _singlePassword);
+class _PasscodeScreenState extends ConsumerState<PasscodeScreen> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _rememberMe = true;
   bool _obscureText = true;
+  bool _isRegisterMode = false;
+  final _nameController = TextEditingController();
+  bool _isLoading = false;
 
-  void _onSignIn() {
+  @override
+  void initState() {
+    super.initState();
+    // No hardcoded credentials - user must enter their own
+  }
+
+  Future<void> _submitAuth() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    if (email.toLowerCase() == _singleUserId && password == _singlePassword) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const MainLayout()),
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter both email and password'),
+          backgroundColor: Colors.redAccent,
+        ),
       );
       return;
     }
-    
+
+    if (_isRegisterMode && _nameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter your name'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final auth = ref.read(authProvider.notifier);
+    try {
+      if (_isRegisterMode) {
+        await auth.register(email, password, _nameController.text.trim());
+      } else {
+        await auth.login(email, password);
+      }
+
+      if (!mounted) return;
+
+      // Navigate only if authentication was successful
+      if (ref.read(authProvider).isAuthenticated) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const MainLayout()),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Authentication failed: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _onForgotPassword() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Invalid credentials'),
-        backgroundColor: Colors.redAccent,
-      )
+      SnackBar(
+        content: const Text('No password reset yet — this app runs offline-first. '
+            'If you forget it, clear app data; your entries stay on this device.'),
+        backgroundColor: const Color(0xFF3B6443),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     );
   }
 
@@ -41,6 +97,7 @@ class _PasscodeScreenState extends State<PasscodeScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _nameController.dispose();
     super.dispose();
   }
 
@@ -66,13 +123,13 @@ class _PasscodeScreenState extends State<PasscodeScreen> {
             left: -50,
             child: _blob(const Color(0xFFF5EFEB), 150),
           ),
-          
+
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                child: SizedBox(
-                  width: 400,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 400),
                   child: Column(
                     children: [
                       // Language dropdown
@@ -97,9 +154,9 @@ class _PasscodeScreenState extends State<PasscodeScreen> {
                           ),
                         ),
                       ),
-                      
+
                       const SizedBox(height: 20),
-                      
+
                       // Logo & Title
                       Icon(Icons.energy_savings_leaf_outlined, size: 48, color: const Color(0xFF2C4A3B)),
                       const SizedBox(height: 8),
@@ -122,9 +179,9 @@ class _PasscodeScreenState extends State<PasscodeScreen> {
                           height: 1.5,
                         ),
                       ),
-                      
+
                       const SizedBox(height: 32),
-                      
+
                       // Form Card
                       Container(
                         padding: const EdgeInsets.all(24),
@@ -143,7 +200,7 @@ class _PasscodeScreenState extends State<PasscodeScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Welcome Back!',
+                              _isRegisterMode ? 'Create Account' : 'Welcome Back!',
                               style: GoogleFonts.nunito(
                                 fontSize: 28,
                                 fontWeight: FontWeight.w800,
@@ -152,7 +209,9 @@ class _PasscodeScreenState extends State<PasscodeScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Log in to continue your journey.',
+                              _isRegisterMode
+                                  ? 'Set up your profile to get started.'
+                                  : 'Log in to continue your journey.',
                               style: GoogleFonts.nunito(
                                 fontSize: 15,
                                 color: const Color(0xFF7A7A7A),
@@ -160,7 +219,26 @@ class _PasscodeScreenState extends State<PasscodeScreen> {
                               ),
                             ),
                             const SizedBox(height: 24),
-                            
+
+                            // Name field (register mode only)
+                            if (_isRegisterMode) ...[
+                              Text(
+                                'Full Name',
+                                style: GoogleFonts.nunito(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF2C4A3B),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              _buildTextField(
+                                controller: _nameController,
+                                hint: 'Enter your full name',
+                                icon: Icons.person_outline,
+                              ),
+                              const SizedBox(height: 20),
+                            ],
+
                             // Email Field
                             Text(
                               'Email or Phone',
@@ -176,9 +254,9 @@ class _PasscodeScreenState extends State<PasscodeScreen> {
                               hint: 'Enter your email or phone number',
                               icon: Icons.mail_outline,
                             ),
-                            
+
                             const SizedBox(height: 20),
-                            
+
                             // Password Field
                             Text(
                               'Password',
@@ -195,87 +273,107 @@ class _PasscodeScreenState extends State<PasscodeScreen> {
                               icon: Icons.lock_outline,
                               isPassword: true,
                             ),
-                            
+
                             const SizedBox(height: 16),
-                            
-                            // Remember me & Forgot Password
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    GestureDetector(
-                                      onTap: () => setState(() => _rememberMe = !_rememberMe),
-                                      child: Container(
-                                        width: 20,
-                                        height: 20,
-                                        decoration: BoxDecoration(
-                                          color: _rememberMe ? const Color(0xFFE4ECD9) : Colors.transparent,
-                                          border: Border.all(color: _rememberMe ? const Color(0xFF67793D) : const Color(0xFFD4D4D4)),
-                                          borderRadius: BorderRadius.circular(4),
+
+                            if (!_isRegisterMode)
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Flexible(
+                                    child: Row(
+                                      children: [
+                                        GestureDetector(
+                                          onTap: () => setState(() => _rememberMe = !_rememberMe),
+                                          child: Container(
+                                            width: 20,
+                                            height: 20,
+                                            decoration: BoxDecoration(
+                                              color: _rememberMe ? const Color(0xFFE4ECD9) : Colors.transparent,
+                                              border: Border.all(color: _rememberMe ? const Color(0xFF67793D) : const Color(0xFFD4D4D4)),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: _rememberMe
+                                              ? const Icon(Icons.check, size: 14, color: Color(0xFF2C4A3B))
+                                              : null,
+                                          ),
                                         ),
-                                        child: _rememberMe 
-                                          ? const Icon(Icons.check, size: 14, color: Color(0xFF2C4A3B))
-                                          : null,
-                                      ),
+                                        const SizedBox(width: 8),
+                                        Flexible(
+                                          child: Text(
+                                            'Remember me',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: GoogleFonts.nunito(
+                                              fontSize: 14,
+                                              color: const Color(0xFF2C4A3B),
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Remember me',
+                                  ),
+                                  const SizedBox(width: 8),
+                                  GestureDetector(
+                                    onTap: _onForgotPassword,
+                                    child: Text(
+                                      'Forgot Password?',
                                       style: GoogleFonts.nunito(
                                         fontSize: 14,
                                         color: const Color(0xFF2C4A3B),
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
-                                  ],
-                                ),
-                                Text(
-                                  'Forgot Password?',
-                                  style: GoogleFonts.nunito(
-                                    fontSize: 14,
-                                    color: const Color(0xFF2C4A3B),
-                                    fontWeight: FontWeight.w700,
                                   ),
-                                ),
-                              ],
-                            ),
-                            
+                                ],
+                              ),
+
                             const SizedBox(height: 24),
-                            
+
                             // Log In Button
                             SizedBox(
                               width: double.infinity,
                               height: 54,
                               child: ElevatedButton(
-                                onPressed: _onSignIn,
+                                onPressed: _isLoading ? null : _submitAuth,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF3B6443), // Darker green
                                   foregroundColor: Colors.white,
                                   elevation: 0,
+                                  disabledBackgroundColor: const Color(0xFF3B6443).withValues(alpha: 0.6),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(27),
                                   ),
                                 ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      'Log In',
-                                      style: GoogleFonts.nunito(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w700,
+                                child: _isLoading
+                                    ? const SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            _isRegisterMode ? 'Create Account' : 'Log In',
+                                            style: GoogleFonts.nunito(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          const Icon(Icons.arrow_forward, size: 20),
+                                        ],
                                       ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    const Icon(Icons.arrow_forward, size: 20),
-                                  ],
-                                ),
                               ),
                             ),
-                            
+
                             const SizedBox(height: 24),
-                            
+
                             // Or Divider
                             Row(
                               children: [
@@ -287,9 +385,9 @@ class _PasscodeScreenState extends State<PasscodeScreen> {
                                 Expanded(child: Container(height: 1, color: const Color(0xFFEFEFEF))),
                               ],
                             ),
-                            
+
                             const SizedBox(height: 24),
-                            
+
                             // Social Icons
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -301,30 +399,34 @@ class _PasscodeScreenState extends State<PasscodeScreen> {
                                 _socialIcon('assets/facebook.png', Icons.facebook),
                               ],
                             ),
-                            
+
                             const SizedBox(height: 32),
-                            
-                            // Create account
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'New here? ',
-                                  style: GoogleFonts.nunito(
-                                    fontSize: 15,
-                                    color: const Color(0xFF7A7A7A),
+
+                            // Create account / back to login
+                            GestureDetector(
+                              onTap: () => setState(() => _isRegisterMode = !_isRegisterMode),
+                              child: Wrap(
+                                alignment: WrapAlignment.center,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  Text(
+                                    _isRegisterMode ? 'Already have an account? ' : 'New here? ',
+                                    style: GoogleFonts.nunito(
+                                      fontSize: 15,
+                                      color: const Color(0xFF7A7A7A),
+                                    ),
                                   ),
-                                ),
-                                Text(
-                                  'Create an account ',
-                                  style: GoogleFonts.nunito(
-                                    fontSize: 15,
-                                    color: const Color(0xFF2C4A3B),
-                                    fontWeight: FontWeight.w800,
+                                  Text(
+                                    _isRegisterMode ? 'Log In ' : 'Create an account ',
+                                    style: GoogleFonts.nunito(
+                                      fontSize: 15,
+                                      color: const Color(0xFF2C4A3B),
+                                      fontWeight: FontWeight.w800,
+                                    ),
                                   ),
-                                ),
-                                const Icon(Icons.arrow_forward, size: 16, color: Color(0xFF2C4A3B)),
-                              ],
+                                  const Icon(Icons.arrow_forward, size: 16, color: Color(0xFF2C4A3B)),
+                                ],
+                              ),
                             ),
                           ],
                         ),

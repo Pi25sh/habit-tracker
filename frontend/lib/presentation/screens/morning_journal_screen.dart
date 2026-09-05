@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
+import '../../application/providers/journal_provider.dart';
+import '../../data/models/journal_entry.dart';
 import 'package:intl/intl.dart';
 
 class MorningJournalScreen extends ConsumerStatefulWidget {
@@ -11,11 +14,14 @@ class MorningJournalScreen extends ConsumerStatefulWidget {
 
 class _MorningJournalScreenState extends ConsumerState<MorningJournalScreen> {
   final _affirmationController = TextEditingController();
-  final _goalController = TextEditingController();
   final _intentionController = TextEditingController();
   final _gratitudeController = TextEditingController();
-  final _focusController = TextEditingController();
   final _visualizationController = TextEditingController();
+  final _priorityControllers = [
+    TextEditingController(),
+    TextEditingController(),
+    TextEditingController(),
+  ];
   
   String _selectedMood = '😊';
   double _sleepHours = 7.0;
@@ -24,11 +30,12 @@ class _MorningJournalScreenState extends ConsumerState<MorningJournalScreen> {
   @override
   void dispose() {
     _affirmationController.dispose();
-    _goalController.dispose();
     _intentionController.dispose();
     _gratitudeController.dispose();
-    _focusController.dispose();
     _visualizationController.dispose();
+    for (var c in _priorityControllers) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -147,6 +154,37 @@ class _MorningJournalScreenState extends ConsumerState<MorningJournalScreen> {
               height: 56,
               child: ElevatedButton(
                 onPressed: () {
+                  final StringBuffer bodyBuffer = StringBuffer();
+                  if (_affirmationController.text.isNotEmpty) bodyBuffer.writeln('**Affirmation:**\n${_affirmationController.text}\n');
+                  
+                  final priorities = _priorityControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList();
+                  if (priorities.isNotEmpty) {
+                    bodyBuffer.writeln('**Top Priorities:**');
+                    for (int i = 0; i < priorities.length; i++) {
+                      bodyBuffer.writeln('${i + 1}. ${priorities[i]}');
+                    }
+                    bodyBuffer.writeln();
+                  }
+
+                  if (_intentionController.text.isNotEmpty) bodyBuffer.writeln('**Intention:**\n${_intentionController.text}\n');
+                  if (_gratitudeController.text.isNotEmpty) bodyBuffer.writeln('**Gratitude:**\n${_gratitudeController.text}\n');
+                  if (_visualizationController.text.isNotEmpty) bodyBuffer.writeln('**Visualization:**\n${_visualizationController.text}\n');
+                  
+                  bodyBuffer.writeln('**Sleep:** ${_sleepHours.toStringAsFixed(1)} hrs ($_sleepQuality)');
+
+                  final entry = JournalEntry(
+                    id: const Uuid().v4(),
+                    title: 'Morning Reflection',
+                    body: bodyBuffer.toString(),
+                    date: now,
+                    mood: _selectedMood,
+                    categoryId: 'morning_journal',
+                    createdAt: now,
+                    updatedAt: now,
+                  );
+
+                  ref.read(journalProvider.notifier).addEntry(entry);
+
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Morning Journal saved! ☀️')));
                   Navigator.pop(context);
                 },
@@ -286,6 +324,7 @@ class _MorningJournalScreenState extends ConsumerState<MorningJournalScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: TextField(
+                  controller: _priorityControllers[index],
                   decoration: InputDecoration(border: InputBorder.none, hintText: 'Priority ${index + 1}', hintStyle: TextStyle(color: Colors.black.withValues(alpha: 0.3))),
                 ),
               ),

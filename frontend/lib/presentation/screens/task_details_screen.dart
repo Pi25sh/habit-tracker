@@ -136,7 +136,6 @@ class _TaskDetailsScreenState extends ConsumerState<TaskDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final t = _current;
     final dueDate = t.dueDate ?? DateTime.now();
 
@@ -279,50 +278,7 @@ class _TaskDetailsScreenState extends ConsumerState<TaskDetailsScreen> {
 
                 const SizedBox(height: 32),
 
-                // Notes Checkbox section
-                const Text(
-                  'Notes',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1E2420),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFC0D1C2), // Sage Green background
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          _buildMockCheckbox(true, 'Fruits'),
-                          const SizedBox(width: 40),
-                          _buildMockCheckbox(false, 'Oats'),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          _buildMockCheckbox(false, 'Vegetables'),
-                          const SizedBox(width: 40),
-                          _buildMockCheckbox(false, 'Eggs'),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          _buildMockCheckbox(false, 'Milk'),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 60),
+                // Removed dummy grocery checklist
               ],
             ),
           ),
@@ -341,27 +297,6 @@ class _TaskDetailsScreenState extends ConsumerState<TaskDetailsScreen> {
                 );
               }
             },
-          ),
-        ],
-      ),
-    );
-  }
-  Widget _buildMockCheckbox(bool isChecked, String text) {
-    return Expanded(
-      child: Row(
-        children: [
-          Icon(
-            isChecked ? Icons.check_box_outlined : Icons.check_box_outline_blank,
-            color: const Color(0xFF1E2420),
-            size: 24,
-          ),
-          const SizedBox(width: 12),
-          Text(
-            text,
-            style: const TextStyle(
-              fontSize: 18,
-              color: Color(0xFF1E2420),
-            ),
           ),
         ],
       ),
@@ -622,7 +557,6 @@ class _BottomToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: EdgeInsets.only(
         left: 24,

@@ -170,12 +170,14 @@ class TodoCard extends ConsumerWidget {
   Widget _buildProgressElements(Habit habit) {
     // If the habit is Drink Water or something similar, render the drops, else render SMTWTFS dots.
     if (habit.name.toLowerCase().contains('water') || habit.icon == '💧' || habit.icon == '🚰') {
-      // 14 drop icons
+      // 14 drop icons (representing last 14 days)
+      final today = DateTime.now();
       return Wrap(
         spacing: 6,
         runSpacing: 6,
         children: List.generate(14, (i) {
-          final isFilled = i < 5; // mock logic: typically based on progress count
+          final dayToCheck = today.subtract(Duration(days: 13 - i));
+          final isFilled = habit.completedDates.any((d) => d.year == dayToCheck.year && d.month == dayToCheck.month && d.day == dayToCheck.day);
           return Icon(
             Icons.water_drop,
             size: 22,
@@ -193,12 +195,17 @@ class TodoCard extends ConsumerWidget {
         }),
       );
     } else {
-      // Render S M T W T F S dots
+      // Render S M T W T F S dots for the current week
       final labels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+      final today = DateTime.now();
+      // Find the most recent Sunday (0 to 6 days ago)
+      final sunday = today.subtract(Duration(days: today.weekday == 7 ? 0 : today.weekday));
+
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: List.generate(7, (i) {
-          final isFilled = i < 3; // mock logic: match reference image which had S M T green
+          final dayToCheck = sunday.add(Duration(days: i));
+          final isFilled = habit.completedDates.any((d) => d.year == dayToCheck.year && d.month == dayToCheck.month && d.day == dayToCheck.day);
           return Container(
             width: 28,
             height: 28,

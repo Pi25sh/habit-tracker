@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../application/providers/habit_provider.dart';
 import '../../data/models/habit.dart';
+import '../widgets/add_bg_dialog.dart';
 
 class CreateHabitScreen extends ConsumerStatefulWidget {
   final Habit? editHabit;
@@ -113,9 +114,7 @@ class _CreateHabitScreenState extends ConsumerState<CreateHabitScreen> {
                       ),
                     ),
                     GestureDetector(
-                      onTap: () {
-                        // TODO: Add BG functionality
-                      },
+                      onTap: () => showAddBgDialog(context, ref),
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../application/providers/auth_provider.dart';
 import '../../application/providers/habit_provider.dart';
 import '../../presentation/widgets/app_card.dart';
 
-/// Shivani's profile page — minimal, personal, botanical.
+/// Profile page — minimal, personal, botanical.
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
@@ -12,6 +13,8 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final habits = ref.watch(habitProvider);
+    final authState = ref.watch(authProvider);
+    final userName = authState.userName ?? 'You';
 
     int currentStreak = 0;
     int longestStreak = 0;
@@ -57,7 +60,7 @@ class ProfileScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Shivani',
+              userName,
               style: GoogleFonts.playfairDisplay(
                 fontSize: 28,
                 fontWeight: FontWeight.w700,

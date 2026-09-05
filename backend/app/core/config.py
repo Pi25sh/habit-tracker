@@ -4,7 +4,8 @@ All secrets come from the environment (.env in dev, injected secrets in prod).
 Nothing sensitive is ever hardcoded.
 """
 from functools import lru_cache
-from pydantic import PostgresDsn, RedisDsn
+from typing import Any
+from pydantic import RedisDsn, AnyUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -35,9 +36,19 @@ class Settings(BaseSettings):
     LOCATION_ENCRYPTION_KEY: str
 
     # --- Database ---
-    DATABASE_URL: PostgresDsn
+    DATABASE_URL: AnyUrl
     DB_POOL_SIZE: int = 10
     DB_MAX_OVERFLOW: int = 20
+
+    @property
+    def database_url_async(self) -> str:
+        """Return DATABASE_URL with async driver if needed."""
+        url = str(self.DATABASE_URL)
+        if url.startswith("sqlite://"):
+            return url.replace("sqlite://", "sqlite+aiosqlite://")
+        if url.startswith("postgresql://"):
+            return url.replace("postgresql://", "postgresql+asyncpg://")
+        return url
 
     # --- Redis ---
     REDIS_URL: RedisDsn = "redis://redis:6379/0"

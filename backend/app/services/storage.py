@@ -1,11 +1,14 @@
 """MinIO/S3 storage: validated uploads, presigned downloads."""
 import hashlib
+import logging
 import uuid
 
 import aioboto3
 from fastapi import HTTPException, UploadFile, status
 
 from app.core.config import settings
+
+log = logging.getLogger("app")
 
 _session = aioboto3.Session()
 
@@ -77,5 +80,6 @@ async def ensure_bucket() -> None:
     async with _client() as s3:
         try:
             await s3.head_bucket(Bucket=settings.S3_BUCKET_PHOTOS)
-        except Exception:
-            await s3.create_bucket(Bucket=settings.S3_BUCKET_PHOTOS)
+        except Exception as e:
+            # Don't crash on startup if MinIO isn't available; log and retry lazily
+            log.warning("MinIO bucket check failed (will retry on first upload): %s", e)

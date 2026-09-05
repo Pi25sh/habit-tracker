@@ -40,12 +40,12 @@ class _ThoughtsScreenState extends ConsumerState<ThoughtsScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Add to Bucket List', style: GoogleFonts.nunito(fontWeight: FontWeight.bold)),
+        title: Text('What’s on your mind?', style: GoogleFonts.nunito(fontWeight: FontWeight.bold)),
         content: TextField(
           controller: controller,
           autofocus: true,
           decoration: InputDecoration(
-            hintText: 'What is your dream?',
+            hintText: 'Share a thought…',
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
@@ -78,22 +78,28 @@ class _ThoughtsScreenState extends ConsumerState<ThoughtsScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        'Bucket List',
-                        style: GoogleFonts.kalam(
-                          fontSize: 42,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF6B92CB),
+                  Flexible(
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            'Thoughts',
+                            style: GoogleFonts.kalam(
+                              fontSize: 40,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF6B92CB),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Icon(Icons.star_border, color: Color(0xFF6B92CB), size: 28),
-                    ],
+                        const SizedBox(width: 8),
+                        const Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFF6B92CB), size: 26),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 12),
                   GestureDetector(
                     onTap: () => showAddBgDialog(context, ref),
                     child: ClipRRect(
@@ -199,12 +205,13 @@ class _ThoughtsScreenState extends ConsumerState<ThoughtsScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'thoughtsFab',
         onPressed: _showAddItemDialog,
         backgroundColor: const Color(0xFF6B92CB),
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         icon: const Icon(Icons.add, color: Colors.white),
-        label: Text('Add Dream', style: GoogleFonts.nunito(fontWeight: FontWeight.w700, color: Colors.white)),
+        label: Text('Add Thought', style: GoogleFonts.nunito(fontWeight: FontWeight.w700, color: Colors.white)),
       ),
     );
   }

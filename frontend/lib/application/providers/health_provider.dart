@@ -84,4 +84,14 @@ class HealthNotifier extends StateNotifier<Map<String, dynamic>> {
     state = current;
     _saveData();
   }
+
+  bool isSyncEnabled() {
+    return _prefs.getBool('health_sync_enabled') ?? false;
+  }
+
+  void setSyncEnabled(bool enabled) {
+    _prefs.setBool('health_sync_enabled', enabled);
+    // Trigger a rebuild by re-assigning state
+    state = Map.from(state); 
+  }
 }

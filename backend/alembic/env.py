@@ -1,17 +1,27 @@
 """Alembic environment — reads DATABASE_URL from env, targets app metadata."""
 import os
+import sys
 from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
+# Add backend to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
+from app.core.config import settings
 from app.models.models import Base
 
 config = context.config
 
-db_url = os.environ.get("DATABASE_URL", "").replace("+asyncpg", "+psycopg2")
-if db_url:
-    config.set_main_option("sqlalchemy.url", db_url)
+# Use the async database URL from settings, converting to sync driver for migrations
+db_url = settings.database_url_async
+if db_url.startswith("sqlite+aiosqlite://"):
+    db_url = db_url.replace("sqlite+aiosqlite://", "sqlite://")
+elif db_url.startswith("postgresql+asyncpg://"):
+    db_url = db_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://")
+
+config.set_main_option("sqlalchemy.url", db_url)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

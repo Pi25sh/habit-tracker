@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.deps import rate_limit
-from app.api.v1 import admin, auth, camera, habits, location, notifications, photos, ws
+from app.api.v1 import admin, auth, camera, habits, location, notifications, photos, sync, ws
 from app.core.config import settings
 
 logging.basicConfig(
@@ -75,4 +75,5 @@ app.include_router(location.router, prefix=prefix, dependencies=[Depends(rate_li
 app.include_router(camera.router, prefix=prefix, dependencies=[Depends(rate_limit)])
 app.include_router(notifications.router, prefix=prefix, dependencies=[Depends(rate_limit)])
 app.include_router(admin.router, prefix=prefix)
+app.include_router(sync.router, prefix=prefix, dependencies=[Depends(rate_limit)])
 app.include_router(ws.router, prefix=prefix)

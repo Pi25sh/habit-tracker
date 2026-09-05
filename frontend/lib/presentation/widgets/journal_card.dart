@@ -9,13 +9,11 @@ import '../../presentation/screens/journal_editor_screen.dart';
 
 class JournalCard extends ConsumerWidget {
   final JournalEntry entry;
-  final String fallbackImageUrl;
   final bool hasBg;
 
   const JournalCard({
-    super.key, 
-    required this.entry, 
-    this.fallbackImageUrl = 'https://picsum.photos/seed/flower/200/300',
+    super.key,
+    required this.entry,
     this.hasBg = false,
   });
 
@@ -66,25 +64,29 @@ class JournalCard extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            entry.title.isNotEmpty ? entry.title : 'A grateful heart',
+                            entry.title.isNotEmpty ? entry.title : 'Untitled',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.nunito(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
                               color: const Color(0xFF1E2420),
                             ),
                           ),
-                          const SizedBox(height: 12),
-                          Text(
-                            entry.body.isNotEmpty ? entry.body : 'Today I felt truly grateful for the little things...',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.nunito(
-                              fontSize: 15,
-                              color: const Color(0xFF1E2420),
-                              fontWeight: FontWeight.w500,
-                              height: 1.4,
+                          if (entry.body.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              entry.body,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.nunito(
+                                fontSize: 15,
+                                color: const Color(0xFF1E2420),
+                                fontWeight: FontWeight.w500,
+                                height: 1.4,
+                              ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -100,7 +102,7 @@ class JournalCard extends ConsumerWidget {
                   ),
                 ),
               ),
-              
+
               // Date Chip
               Center(
                 child: Container(
@@ -142,20 +144,10 @@ class JournalCard extends ConsumerWidget {
                   ),
                 ),
               ),
-              
-              // Image
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.network(
-                  fallbackImageUrl,
-                  width: 90,
-                  fit: BoxFit.cover,
-                ),
-              ),
             ],
           ),
         ),
-      ),
+        ),
       ),
     ),
   );
